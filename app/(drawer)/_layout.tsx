@@ -77,6 +77,13 @@ export default function DrawerLayout() {
             drawerLabel: 'Dinheiro Emprestado',
           }}
         />
+        <Drawer.Screen
+          name="notifications"
+          options={{
+            title: 'Notificações',
+            drawerLabel: 'Notificações',
+          }}
+        />
       </Drawer>
     </GestureHandlerRootView>
   );

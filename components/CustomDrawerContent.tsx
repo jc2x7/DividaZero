@@ -52,6 +52,12 @@ const MENU_ITEMS: MenuItem[] = [
     route: '/(drawer)/lending',
     description: 'Agenda de cobranças',
   },
+  {
+    label: 'Notificações',
+    icon: 'bell-ring',
+    route: '/(drawer)/notifications',
+    description: 'Agendar lembretes',
+  },
 ];
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
