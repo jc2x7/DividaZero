@@ -2,8 +2,23 @@ import { Drawer } from 'expo-router/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
+import { DrawerActions } from '@react-navigation/drawer';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
 import { COLORS } from '../../constants/colors';
+
+function MenuButton() {
+  const navigation = useNavigation();
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+      style={{ marginLeft: 16, padding: 8 }}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <MaterialCommunityIcons name="menu" size={26} color="#fff" />
+    </TouchableOpacity>
+  );
+}
 
 export default function DrawerLayout() {
   return (
@@ -25,11 +40,7 @@ export default function DrawerLayout() {
           },
           drawerActiveTintColor: COLORS.highlight,
           drawerInactiveTintColor: COLORS.drawerTextSecondary,
-          headerLeft: ({ onPress }) => (
-            <TouchableOpacity onPress={onPress} style={{ marginLeft: 16, padding: 4 }}>
-              <MaterialCommunityIcons name="menu" size={26} color="#fff" />
-            </TouchableOpacity>
-          ),
+          headerLeft: () => <MenuButton />,
         }}
       >
         <Drawer.Screen

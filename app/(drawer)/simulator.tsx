@@ -18,6 +18,43 @@ import AmortizationTable from '../../components/AmortizationTable';
 
 type SimType = 'PRICE' | 'SAC';
 
+// InputField FORA do componente para não ser recriado a cada render
+// (se estiver dentro, o TextInput perde o foco após cada keystroke)
+function InputField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  suffix,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  suffix?: string;
+}) {
+  return (
+    <View style={styles.inputGroup}>
+      <Text style={styles.inputLabel}>{label}</Text>
+      <View style={styles.inputRow}>
+        <TextInput
+          style={[styles.input, suffix ? styles.inputWithSuffix : null]}
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.textLight}
+          keyboardType="decimal-pad"
+        />
+        {suffix && (
+          <View style={styles.suffix}>
+            <Text style={styles.suffixText}>{suffix}</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function SimulatorScreen() {
   const [principal, setPrincipal] = useState('');
   const [rate, setRate] = useState('');
@@ -47,39 +84,6 @@ export default function SimulatorScreen() {
     setPeriods('');
     setCalculated(false);
   };
-
-  const InputField = ({
-    label,
-    value,
-    onChange,
-    placeholder,
-    suffix,
-  }: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    placeholder: string;
-    suffix?: string;
-  }) => (
-    <View style={styles.inputGroup}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <View style={styles.inputRow}>
-        <TextInput
-          style={[styles.input, suffix ? styles.inputWithSuffix : null]}
-          value={value}
-          onChangeText={onChange}
-          placeholder={placeholder}
-          placeholderTextColor={COLORS.textLight}
-          keyboardType="decimal-pad"
-        />
-        {suffix && (
-          <View style={styles.suffix}>
-            <Text style={styles.suffixText}>{suffix}</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>

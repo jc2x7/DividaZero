@@ -3,8 +3,6 @@ import {
   INSS_CEILING_2026,
   IRRF_TABLE_2026,
   IR_EXEMPT_LIMIT_2026,
-  IR_REDUCER_LIMIT_2026,
-  IR_REDUCER_MAX_2026,
   FGTS_RATE,
   FGTS_FINE_RATE,
   FGTS_FINE_CONSENSUAL_RATE,
@@ -135,31 +133,19 @@ function calculateINSS(grossSalary: number): { total: number; details: { range: 
 }
 
 // ============================================================
-// CÁLCULO DO IRRF 2026
-// Isenção total até R$ 5.000,00
-// Redutor progressivo entre R$ 5.000,01 e R$ 7.350,00
+// CÁLCULO DO IRRF (tabela progressiva vigente)
+// Isenção: até R$ 2.259,20
 // ============================================================
 function calculateIRRF(irBase: number): number {
   if (irBase <= IR_EXEMPT_LIMIT_2026) return 0;
 
-  // Encontra faixa da tabela
-  let ir = 0;
   for (const bracket of IRRF_TABLE_2026) {
     if (irBase <= bracket.max) {
-      ir = irBase * bracket.rate - bracket.deduction;
-      break;
+      return Math.max(0, irBase * bracket.rate - bracket.deduction);
     }
   }
 
-  // Aplica redutor progressivo para faixas entre 5k e 7.35k
-  if (irBase > IR_EXEMPT_LIMIT_2026 && irBase <= IR_REDUCER_LIMIT_2026) {
-    // Redutor decrescente: máximo de R$ 312,89 em R$ 5.000,01 diminuindo até 0 em R$ 7.350,00
-    const reducerFactor = 1 - (irBase - IR_EXEMPT_LIMIT_2026) / (IR_REDUCER_LIMIT_2026 - IR_EXEMPT_LIMIT_2026);
-    const reducer = IR_REDUCER_MAX_2026 * reducerFactor;
-    ir = Math.max(0, ir - reducer);
-  }
-
-  return Math.max(0, ir);
+  return 0;
 }
 
 // ============================================================

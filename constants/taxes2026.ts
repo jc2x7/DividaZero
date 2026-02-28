@@ -1,6 +1,6 @@
 // ============================================================
-// Tabelas Tributárias Brasileiras 2026
-// Fonte: Reforma Tributária / Medidas Provisórias vigentes
+// Tabelas Tributárias Brasileiras 2025/2026
+// Fonte: Receita Federal / IN RFB vigente
 // ============================================================
 
 export interface TaxBracket {
@@ -20,25 +20,19 @@ export const INSS_TABLE_2026: TaxBracket[] = [
 
 export const INSS_CEILING_2026 = 8475.55;
 
-// Tabela IRRF 2026 (base = salário bruto - INSS - outras deduções)
-// Isenção total para rendimentos até R$ 5.000,00
-// Redutor progressivo para faixas entre R$ 5.000,01 e R$ 7.350,00
+// Tabela IRRF vigente (base = salário bruto - INSS - deduções)
+// Isenção: até R$ 2.259,20
+// Fonte: IN RFB 2.203/2024 e tabela progressiva em vigor
 export const IRRF_TABLE_2026: TaxBracket[] = [
-  { max: 5000.00, rate: 0, deduction: 0 },
-  { max: 7000.00, rate: 0.075, deduction: 375.00 },
-  { max: 9000.00, rate: 0.15, deduction: 900.00 },
-  { max: 12000.00, rate: 0.225, deduction: 1575.00 },
-  { max: Infinity, rate: 0.275, deduction: 2175.00 },
+  { max: 2259.20,  rate: 0,     deduction: 0       },
+  { max: 2826.65,  rate: 0.075, deduction: 169.44  },
+  { max: 3751.05,  rate: 0.15,  deduction: 381.44  },
+  { max: 4664.68,  rate: 0.225, deduction: 662.77  },
+  { max: Infinity, rate: 0.275, deduction: 908.73  },
 ];
 
-// Limite de isenção total do IR 2026
-export const IR_EXEMPT_LIMIT_2026 = 5000.00;
-
-// Limite até onde o redutor progressivo atua
-export const IR_REDUCER_LIMIT_2026 = 7350.00;
-
-// Redutor máximo para faixas entre 5k e 7.35k
-export const IR_REDUCER_MAX_2026 = 312.89;
+// Limite de isenção do IR (tabela vigente)
+export const IR_EXEMPT_LIMIT_2026 = 2259.20;
 
 // Salário mínimo nacional 2026
 export const MINIMUM_WAGE_2026 = 1518.00;

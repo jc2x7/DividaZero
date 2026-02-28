@@ -162,7 +162,7 @@ export default function SalaryCalcScreen() {
             <View style={[styles.alertBox, { backgroundColor: `${COLORS.success}15`, borderLeftColor: COLORS.success }]}>
               <MaterialCommunityIcons name="check-circle" size={18} color={COLORS.success} />
               <Text style={[styles.alertText, { color: COLORS.success }]}>
-                Rendimento até R$ {IR_EXEMPT_LIMIT_2026.toLocaleString('pt-BR')} — isento de Imposto de Renda em 2026
+                Rendimento até R$ 2.259,20 — isento de Imposto de Renda
               </Text>
             </View>
           )}
@@ -270,21 +270,20 @@ export default function SalaryCalcScreen() {
                 ]}
               />
               <TableSection
-                title="Tabela IRRF 2026 (após INSS)"
+                title="Tabela IRRF vigente (após INSS)"
                 headers={['Base de Cálculo', 'Alíquota', 'Parcela Deduzir']}
                 rows={[
-                  ['Até R$ 5.000,00', 'Isento', '-'],
-                  ['R$ 5.000,01 a R$ 7.000,00', '7,5%', 'R$ 375,00'],
-                  ['R$ 7.000,01 a R$ 9.000,00', '15,0%', 'R$ 900,00'],
-                  ['R$ 9.000,01 a R$ 12.000,00', '22,5%', 'R$ 1.575,00'],
-                  ['Acima de R$ 12.000,00', '27,5%', 'R$ 2.175,00'],
+                  ['Até R$ 2.259,20', 'Isento', '-'],
+                  ['R$ 2.259,21 a R$ 2.826,65', '7,5%', 'R$ 169,44'],
+                  ['R$ 2.826,66 a R$ 3.751,05', '15,0%', 'R$ 381,44'],
+                  ['R$ 3.751,06 a R$ 4.664,68', '22,5%', 'R$ 662,77'],
+                  ['Acima de R$ 4.664,68', '27,5%', 'R$ 908,73'],
                 ]}
               />
               <View style={styles.footnote}>
                 <Text style={styles.footnoteText}>
-                  * Contribuintes com rendimento total até R$ 5.000,00 estão isentos do IRRF
-                  conforme legislação vigente em 2026. Para rendas entre R$ 5.000,01 e R$ 7.350,00,
-                  aplica-se redutor progressivo de até R$ 312,89.
+                  * Tabela progressiva mensal do IRRF conforme IN RFB vigente.
+                  Dedução por dependente: R$ 189,59/mês cada.
                 </Text>
               </View>
             </>
