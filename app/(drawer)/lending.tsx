@@ -214,7 +214,7 @@ export default function LendingScreen() {
         >
           <KeyboardAvoidingView
             style={styles.modalOverlay}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <View style={styles.detailSheet}>
               <View style={styles.handle} />
