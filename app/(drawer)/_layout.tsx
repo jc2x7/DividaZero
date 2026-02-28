@@ -3,15 +3,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
-import { DrawerActions } from '@react-navigation/drawer';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
 import { COLORS } from '../../constants/colors';
 
 function MenuButton() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   return (
     <TouchableOpacity
-      onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+      onPress={() => navigation.openDrawer()}
       style={{ marginLeft: 16, padding: 8 }}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
