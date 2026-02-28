@@ -72,6 +72,7 @@ export default function LaborLawsScreen() {
   const [vacSalary, setVacSalary] = useState('');
   const [vacMonths, setVacMonths] = useState('12');
   const [vacSellDays, setVacSellDays] = useState('0');
+  const [vacEnjoyDays, setVacEnjoyDays] = useState('');
   const [vacCalc, setVacCalc] = useState(false);
 
   const severanceResult = useMemo(() => {
@@ -94,12 +95,11 @@ export default function LaborLawsScreen() {
     if (!vacCalc) return null;
     const s = parseFloat(vacSalary.replace(',', '.')) || 0;
     if (s <= 0) return null;
-    return calculateVacation(
-      s,
-      parseInt(vacMonths, 10) || 12,
-      parseInt(vacSellDays, 10) || 0
-    );
-  }, [vacCalc, vacSalary, vacMonths, vacSellDays]);
+    const months = parseInt(vacMonths, 10) || 12;
+    const sell = parseInt(vacSellDays, 10) || 0;
+    const enjoy = vacEnjoyDays !== '' ? parseInt(vacEnjoyDays, 10) : undefined;
+    return calculateVacation(s, months, sell, enjoy);
+  }, [vacCalc, vacSalary, vacMonths, vacSellDays, vacEnjoyDays]);
 
   const ResultLine = ({
     label,
@@ -171,7 +171,7 @@ export default function LaborLawsScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {tab === 'SEVERANCE' && (
             <>
               <View style={styles.card}>
@@ -264,6 +264,7 @@ export default function LaborLawsScreen() {
               <View style={styles.card}>
                 <NumberInput label="Salário Bruto (R$)" value={vacSalary} onChange={(v) => { setVacSalary(v); setVacCalc(false); }} placeholder="Ex: 3000,00" />
                 <NumberInput label="Meses do Período Aquisitivo (1-12)" value={vacMonths} onChange={(v) => { setVacMonths(v); setVacCalc(false); }} placeholder="12" />
+                <NumberInput label="Dias de Gozo (deixe em branco para usar todos)" value={vacEnjoyDays} onChange={(v) => { setVacEnjoyDays(v); setVacCalc(false); }} placeholder={`Ex: 15 (máx ${Math.floor((30 / 12) * (parseInt(vacMonths, 10) || 12))} dias)`} />
                 <NumberInput label="Dias para Venda (Abono Pecuniário, máx 10)" value={vacSellDays} onChange={(v) => { setVacSellDays(v); setVacCalc(false); }} placeholder="0" />
               </View>
 
@@ -288,8 +289,12 @@ export default function LaborLawsScreen() {
                 <View style={styles.resultsCard}>
                   <Text style={styles.resultsTitle}>Demonstrativo de Férias</Text>
                   <View style={styles.daysRow}>
+                    <Text style={styles.daysLabel}>Total Acumulado</Text>
+                    <Text style={styles.daysValue}>{vacationResult.totalDays} dias</Text>
                     <Text style={styles.daysLabel}>Dias de Gozo</Text>
-                    <Text style={styles.daysValue}>{vacationResult.totalDays - (parseInt(vacSellDays, 10) || 0)} dias</Text>
+                    <Text style={styles.daysValue}>
+                      {vacEnjoyDays !== '' ? parseInt(vacEnjoyDays, 10) || 0 : vacationResult.totalDays - (parseInt(vacSellDays, 10) || 0)} dias
+                    </Text>
                     {(parseInt(vacSellDays, 10) || 0) > 0 && (
                       <>
                         <Text style={styles.daysLabel}>Dias Vendidos</Text>

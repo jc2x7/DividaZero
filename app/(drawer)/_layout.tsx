@@ -1,6 +1,6 @@
 import { Drawer } from 'expo-router/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
 import { COLORS } from '../../constants/colors';
@@ -26,13 +26,9 @@ export default function DrawerLayout() {
           drawerActiveTintColor: COLORS.highlight,
           drawerInactiveTintColor: COLORS.drawerTextSecondary,
           headerLeft: ({ onPress }) => (
-            <MaterialCommunityIcons
-              name="menu"
-              size={26}
-              color="#fff"
-              style={{ marginLeft: 16 }}
-              onPress={onPress}
-            />
+            <TouchableOpacity onPress={onPress} style={{ marginLeft: 16, padding: 4 }}>
+              <MaterialCommunityIcons name="menu" size={26} color="#fff" />
+            </TouchableOpacity>
           ),
         }}
       >

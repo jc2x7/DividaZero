@@ -179,7 +179,7 @@ export function calculateNetSalary(
   const irBase = Math.max(0, grossSalary - inss - dependentDeduction - otherDeductions);
 
   const ir = calculateIRRF(irBase);
-  const netSalary = grossSalary - inss - ir;
+  const netSalary = grossSalary - inss - ir - otherDeductions;
 
   return {
     grossSalary,
@@ -279,10 +279,11 @@ export function calculateSeverance(
 export function calculateVacation(
   grossSalary: number,
   monthsAcquired: number,
-  sellDays = 0
+  sellDays = 0,
+  enjoyDays?: number
 ): VacationCalculation {
   const totalDays = Math.floor((30 / 12) * monthsAcquired);
-  const workDays = totalDays - sellDays;
+  const workDays = enjoyDays !== undefined ? enjoyDays : totalDays - sellDays;
 
   // Férias brutas proporcionais aos dias de gozo
   const vacationGross = (grossSalary / 30) * workDays;

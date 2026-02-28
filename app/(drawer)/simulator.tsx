@@ -90,6 +90,7 @@ export default function SimulatorScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Header Info */}
           <View style={styles.headerCard}>
