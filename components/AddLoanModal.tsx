@@ -143,7 +143,7 @@ export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModal
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Field label="Nome" value={name} onChange={setName} placeholder="Nome completo" />
             <Field
               label="Telefone (WhatsApp)"
