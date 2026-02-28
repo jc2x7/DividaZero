@@ -53,10 +53,10 @@ const MENU_ITEMS: MenuItem[] = [
     description: 'Agenda de cobranças',
   },
   {
-    label: 'Notificações',
-    icon: 'bell-ring',
-    route: '/(drawer)/notifications',
-    description: 'Agendar lembretes',
+    label: 'Meus Dados',
+    icon: 'database-export',
+    route: '/(drawer)/dados',
+    description: 'Backup e restauração',
   },
 ];
 

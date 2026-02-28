@@ -363,3 +363,71 @@ export async function deleteLoanPerson(id: number): Promise<void> {
     [id]
   );
 }
+
+// ============================================================
+// BACKUP / RESTORE
+// ============================================================
+export async function exportAllData(): Promise<string> {
+  const db = await getDatabase();
+  const [salaries, expenses, loanPersons] = await Promise.all([
+    db.getAllAsync('SELECT * FROM salary'),
+    db.getAllAsync('SELECT * FROM expenses'),
+    db.getAllAsync('SELECT * FROM loan_persons'),
+  ]);
+  return JSON.stringify(
+    { version: 1, exportedAt: new Date().toISOString(), salaries, expenses, loanPersons },
+    null,
+    2
+  );
+}
+
+export async function importAllData(jsonStr: string): Promise<void> {
+  const data = JSON.parse(jsonStr);
+  if (!data.version || !Array.isArray(data.salaries) || !Array.isArray(data.expenses) || !Array.isArray(data.loanPersons)) {
+    throw new Error('Arquivo de backup inválido ou corrompido.');
+  }
+
+  const db = await getDatabase();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM loan_persons');
+    await db.runAsync('DELETE FROM expenses');
+    await db.runAsync('DELETE FROM salary');
+
+    for (const s of data.salaries) {
+      await db.runAsync(
+        'INSERT INTO salary (id, amount, other_income, year, month, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [s.id, s.amount, s.other_income, s.year, s.month, s.notes ?? null, s.created_at ?? null]
+      );
+    }
+
+    for (const e of data.expenses) {
+      await db.runAsync(
+        `INSERT INTO expenses
+          (id, name, category, amount, type, installments_total, installments_current,
+           start_date, end_date, year, month, is_active, parent_id, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          e.id, e.name, e.category, e.amount, e.type,
+          e.installments_total, e.installments_current, e.start_date,
+          e.end_date ?? null, e.year, e.month, e.is_active,
+          e.parent_id ?? null, e.notes ?? null, e.created_at ?? null,
+        ]
+      );
+    }
+
+    for (const p of data.loanPersons) {
+      await db.runAsync(
+        `INSERT INTO loan_persons
+          (id, name, phone, total_amount, monthly_interest, installments, installments_paid,
+           start_date, payment_day, notes, notification_id, is_active, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          p.id, p.name, p.phone, p.total_amount, p.monthly_interest,
+          p.installments, p.installments_paid, p.start_date,
+          p.payment_day, p.notes ?? null, p.notification_id ?? null,
+          p.is_active, p.created_at ?? null,
+        ]
+      );
+    }
+  });
+}

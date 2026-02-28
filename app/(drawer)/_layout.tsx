@@ -78,10 +78,10 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
-          name="notifications"
+          name="dados"
           options={{
-            title: 'Notificações',
-            drawerLabel: 'Notificações',
+            title: 'Meus Dados',
+            drawerLabel: 'Meus Dados',
           }}
         />
       </Drawer>
