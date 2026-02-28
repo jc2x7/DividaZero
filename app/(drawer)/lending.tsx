@@ -22,7 +22,6 @@ import {
   getAllLoanPersons,
   deleteLoanPerson,
   markInstallmentPaid,
-  updateNotificationId,
   getLoanPerson,
 } from '../../database/database';
 import { schedulePaymentNotification } from '../../hooks/useNotifications';
@@ -98,8 +97,7 @@ export default function LendingScreen() {
             // Reschedule notification for next month
             const updated = await getLoanPerson(person.id);
             if (updated && updated.installments_paid < updated.installments) {
-              const notifId = await schedulePaymentNotification(updated);
-              if (notifId) await updateNotificationId(updated.id, notifId);
+              await schedulePaymentNotification(updated);
             }
             load();
           },

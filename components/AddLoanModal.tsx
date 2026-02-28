@@ -15,7 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import { addLoanPerson } from '../database/database';
 import { schedulePaymentNotification } from '../hooks/useNotifications';
-import { updateNotificationId, getLoanPerson } from '../database/database';
+import { getLoanPerson } from '../database/database';
 import { getTodayString } from '../utils/formatting';
 
 interface AddLoanModalProps {
@@ -108,13 +108,10 @@ export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModal
         is_active: 1,
       });
 
-      // Schedule notification
+      // Agenda 3 lembretes: 5, 3 e 1 dia antes do vencimento
       const person = await getLoanPerson(id);
       if (person) {
-        const notifId = await schedulePaymentNotification(person);
-        if (notifId) {
-          await updateNotificationId(id, notifId);
-        }
+        await schedulePaymentNotification(person);
       }
 
       resetForm();
