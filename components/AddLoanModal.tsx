@@ -24,6 +24,34 @@ interface AddLoanModalProps {
   onAdded: () => void;
 }
 
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  keyboardType = 'default',
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  keyboardType?: 'default' | 'decimal-pad' | 'phone-pad' | 'number-pad';
+}) {
+  return (
+    <>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.textLight}
+        keyboardType={keyboardType}
+      />
+    </>
+  );
+}
+
 export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModalProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -98,32 +126,6 @@ export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModal
       setSaving(false);
     }
   };
-
-  const Field = ({
-    label,
-    value,
-    onChange,
-    placeholder,
-    keyboardType = 'default',
-  }: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    placeholder?: string;
-    keyboardType?: 'default' | 'decimal-pad' | 'phone-pad' | 'number-pad';
-  }) => (
-    <>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.textLight}
-        keyboardType={keyboardType}
-      />
-    </>
-  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
