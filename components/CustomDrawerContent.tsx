@@ -122,7 +122,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.divider} />
-        <Text style={styles.footerText}>v1.0.0 · Legislação 2026</Text>
+        <Text style={styles.footerText}>v1.0.0 · @juliolemosdf 2026</Text>
         <Text style={styles.footerCreator}>Criado por Julio Lemos</Text>
         <TouchableOpacity
           onPress={() => Linking.openURL('https://jc2x7.github.io/DividaZero/politica-privacidade.html')}
