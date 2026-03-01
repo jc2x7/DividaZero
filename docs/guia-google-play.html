@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guia: Publicar DividaZero na Google Play</title>
+  <style>
+    :root {
+      --navy: #1A1A2E;
+      --navy2: #16213E;
+      --navy3: #0F3460;
+      --red: #E94560;
+      --green: #00B894;
+      --yellow: #FDCB6E;
+      --text: #2D3436;
+      --text2: #636E72;
+      --border: #DFE6E9;
+      --bg: #F0F2F5;
+      --white: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy3) 100%);
+      color: var(--white);
+      padding: 60px 24px 48px;
+      text-align: center;
+    }
+    header .badge {
+      display: inline-block;
+      background: var(--red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    header h1 span { color: var(--red); }
+    header p {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.75);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* NAV STEPS SUMMARY */
+    .nav-steps {
+      background: var(--navy2);
+      padding: 20px 24px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .nav-steps a {
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      transition: all .2s;
+    }
+    .nav-steps a:hover { background: var(--red); color: #fff; border-color: var(--red); }
+
+    /* MAIN */
+    main { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    /* ALERT BOX */
+    .alert {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--white);
+      border-left: 4px solid;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .alert.info  { border-color: #0984E3; }
+    .alert.warn  { border-color: var(--yellow); }
+    .alert.ok    { border-color: var(--green); }
+    .alert.error { border-color: var(--red); }
+    .alert-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+    .alert-body strong { display: block; margin-bottom: 4px; font-weight: 700; }
+    .alert-body p { font-size: 14px; color: var(--text2); }
+    .alert-body a { color: var(--red); }
+
+    /* STEP */
+    .step {
+      background: var(--white);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      background: var(--navy);
+      color: var(--white);
+    }
+    .step-num {
+      width: 36px;
+      height: 36px;
+      background: var(--red);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .step-header h2 { font-size: 1.05rem; font-weight: 700; }
+    .step-header small { color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 2px; display: block; }
+    .step-body { padding: 24px; }
+    .step-body p { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
+    .step-body p:last-child { margin-bottom: 0; }
+
+    /* CHECKLIST */
+    .checklist { list-style: none; margin: 12px 0; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before {
+      content: '☐';
+      font-size: 16px;
+      color: var(--red);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* CODE BLOCK */
+    .code-block {
+      background: #0d1117;
+      color: #e6edf3;
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .code-block .comment { color: #6e7681; }
+    .code-block .cmd { color: #79c0ff; }
+    .code-block .str { color: #a5d6ff; }
+    .code-block .key { color: #ff7b72; }
+
+    /* TEXT BOX (copyable store text) */
+    .textbox {
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 13.5px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      color: var(--text);
+      margin: 12px 0;
+      position: relative;
+    }
+    .textbox-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text2);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .copy-btn {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .copy-btn:hover { background: var(--red); }
+
+    /* GRID */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* INFO CARD */
+    .info-card {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .info-card strong { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .info-card span { font-size: 13px; color: var(--text2); }
+
+    /* TAG */
+    .tag {
+      display: inline-block;
+      background: rgba(233,69,96,0.1);
+      color: var(--red);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 2px;
+    }
+    .tag.green { background: rgba(0,184,148,0.1); color: var(--green); }
+    .tag.blue  { background: rgba(9,132,227,0.12); color: #0984E3; }
+
+    /* TABLE */
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; }
+    th { background: var(--navy); color: #fff; padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: var(--bg); }
+
+    /* LINK */
+    a.ext {
+      color: var(--red);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    a.ext:hover { text-decoration: underline; }
+
+    /* DIVIDER */
+    hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      background: var(--navy);
+      color: rgba(255,255,255,0.5);
+      font-size: 13px;
+    }
+    footer strong { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Guia Completo</div>
+  <h1>Publicar <span>DividaZero</span><br>na Google Play Store</h1>
+  <p>Passo a passo desde a configuração do build até o app aprovado na loja — com todos os textos prontos para copiar.</p>
+</header>
+
+<nav class="nav-steps">
+  <a href="#pre">Pré-requisitos</a>
+  <a href="#build">Build</a>
+  <a href="#conta">Conta Play</a>
+  <a href="#criar-app">Criar App</a>
+  <a href="#listing">Descrição</a>
+  <a href="#assets">Arte e Screenshots</a>
+  <a href="#rating">Classificação</a>
+  <a href="#privacidade">Privacidade</a>
+  <a href="#distribuicao">Distribuição</a>
+  <a href="#envio">Enviar</a>
+  <a href="#revisao">Revisão</a>
+</nav>
+
+<main>
+
+  <!-- ALERTA PRIVACIDADE -->
+  <div class="alert ok">
+    <span class="alert-icon">✅</span>
+    <div class="alert-body">
+      <strong>Política de Privacidade é obrigatória — mas o processo é simples</strong>
+      <p>Mesmo apps 100% offline precisam de uma URL de política de privacidade no Google Play.
+         A boa notícia: como o DividaZero não coleta dados, o texto é curto e direto.
+         A página já está pronta em <a href="politica-privacidade.html">politica-privacidade.html</a> — basta hospedar gratuitamente no GitHub Pages.</p>
+    </div>
+  </div>
+
+  <!-- ─────────────── PRÉ-REQUISITOS ─────────────── -->
+  <div class="step" id="pre">
+    <div class="step-header">
+      <div class="step-num">0</div>
+      <div>
+        <h2>Pré-requisitos — O que você precisa ter</h2>
+        <small>Prepare tudo antes de começar</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li>Conta Google (Gmail) ativa</li>
+        <li>R$ 125 (taxa única do Google Play Developer — cobrado em USD $25)</li>
+        <li>Node.js ≥ 18 instalado no computador</li>
+        <li>Expo CLI e EAS CLI instalados (<code>npm i -g eas-cli</code>)</li>
+        <li>Conta no Expo: <a class="ext" href="https://expo.dev" target="_blank">expo.dev</a> (gratuito)</li>
+        <li>Conta no Google Play Console: <a class="ext" href="https://play.google.com/console" target="_blank">play.google.com/console</a></li>
+        <li>Política de privacidade hospedada (ver passo 8)</li>
+      </ul>
+
+      <div class="alert warn" style="margin-top:16px">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-body">
+          <strong>A taxa de $25 é cobrada uma única vez</strong>
+          <p>Após o pagamento, você pode publicar apps ilimitados para sempre nessa mesma conta.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── BUILD ─────────────── -->
+  <div class="step" id="build">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <h2>Gerar o arquivo AAB (build de produção)</h2>
+        <small>Android App Bundle — formato exigido pela Google Play</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>O EAS Build da Expo compila o app na nuvem, sem precisar instalar Android Studio.</p>
+
+      <div class="code-block">
+<span class="comment"># 1. Instalar EAS CLI globalmente</span>
+<span class="cmd">npm install -g eas-cli</span>
+
+<span class="comment"># 2. Fazer login na sua conta Expo</span>
+<span class="cmd">eas login</span>
+
+<span class="comment"># 3. Na pasta do projeto, configurar EAS (só na 1ª vez)</span>
+<span class="cmd">eas build:configure</span>
+
+<span class="comment"># 4. Gerar o build de produção (.aab) — leva ~10 min</span>
+<span class="cmd">eas build --platform android --profile production</span>
+      </div>
+
+      <div class="alert info" style="margin-top:4px">
+        <span class="alert-icon">💡</span>
+        <div class="alert-body">
+          <strong>Onde fica o arquivo?</strong>
+          <p>O EAS faz o build na nuvem e disponibiliza o link para download no painel
+             <a class="ext" href="https://expo.dev" target="_blank">expo.dev</a>. Baixe o arquivo <strong>.aab</strong> — é esse que você vai enviar para o Google Play.</p>
+        </div>
+      </div>
+
+      <p style="margin-top:12px">Também verifique o <code>app.json</code> antes de buildar:</p>
+
+      <div class="code-block">
+{
+  <span class="key">"expo"</span>: {
+    <span class="key">"name"</span>: <span class="str">"Divida Zero"</span>,
+    <span class="key">"slug"</span>: <span class="str">"divida-zero"</span>,
+    <span class="key">"version"</span>: <span class="str">"1.0.0"</span>,
+    <span class="key">"android"</span>: {
+      <span class="key">"package"</span>: <span class="str">"com.dividazero.app"</span>,
+      <span class="key">"versionCode"</span>: <span class="str">1</span>  <span class="comment">← incrementar a cada update</span>
+    }
+  }
+}
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── CONTA ─────────────── -->
+  <div class="step" id="conta">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div>
+        <h2>Criar conta no Google Play Console</h2>
+        <small>Só precisa fazer isso uma vez</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li>Acesse <a class="ext" href="https://play.google.com/console/signup" target="_blank">play.google.com/console/signup</a></li>
+        <li>Escolha <strong>"Conta pessoal"</strong> (não precisa de empresa)</li>
+        <li>Preencha os dados pessoais solicitados</li>
+        <li>Pague a taxa de $25 (cartão de crédito/débito internacional)</li>
+        <li>Aguarde a confirmação por e-mail (pode levar até 48h)</li>
+        <li>Aceite os termos do desenvolvedor</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────── CRIAR APP ─────────────── -->
+  <div class="step" id="criar-app">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div>
+        <h2>Criar o app no Google Play Console</h2>
+        <small>Dentro do painel da sua conta</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li>No painel, clique em <strong>"Criar app"</strong></li>
+        <li>Idioma padrão: <strong>Português (Brasil)</strong></li>
+        <li>Nome do app: <strong>Divida Zero</strong></li>
+        <li>Tipo: <strong>Aplicativo</strong> (não jogo)</li>
+        <li>Gratuito ou pago: <strong>Gratuito</strong></li>
+        <li>Aceite as Políticas do Programa para Desenvolvedores</li>
+        <li>Clique em <strong>"Criar app"</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────── LISTING ─────────────── -->
+  <div class="step" id="listing">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div>
+        <h2>Descrição na loja — textos prontos</h2>
+        <small>Presença na Play Store → Ficha principal da loja</small>
+      </div>
+    </div>
+    <div class="step-body">
+
+      <div class="textbox-label">
+        Nome do app <span class="tag">máx. 30 caracteres</span>
+        <button class="copy-btn" onclick="copyText(this, 'app-name')">Copiar</button>
+      </div>
+      <div class="textbox" id="app-name">Divida Zero</div>
+
+      <div class="textbox-label">
+        Descrição curta <span class="tag">máx. 80 caracteres</span>
+        <button class="copy-btn" onclick="copyText(this, 'short-desc')">Copiar</button>
+      </div>
+      <div class="textbox" id="short-desc">Controle empréstimos e despesas com facilidade. 100% offline e seguro.</div>
+
+      <div class="textbox-label" style="margin-top:16px">
+        Descrição completa <span class="tag">máx. 4.000 caracteres</span>
+        <button class="copy-btn" onclick="copyText(this, 'full-desc')">Copiar</button>
+      </div>
+      <div class="textbox" id="full-desc">Organize sua vida financeira com o Divida Zero — o app que te ajuda a controlar empréstimos, despesas e salário de forma simples e visual.
+
+✅ 100% offline — seus dados ficam apenas no seu celular
+✅ Sem cadastro, sem nuvem, sem exposição de dados
+✅ Controle de empréstimos concedidos e recebidos
+✅ Gestão de despesas mensais por categoria
+✅ Gráficos e resumo financeiro mensal
+✅ Backup e restauração dos seus dados
+✅ Interface simples, rápida e intuitiva
+✅ Proteção por biometria (impressão digital / Face ID)
+
+━━ COMO FUNCIONA ━━
+
+📌 SALÁRIO E RENDA
+Registre seu salário e outras fontes de renda para saber exatamente quanto você tem disponível por mês.
+
+📌 DESPESAS
+Adicione suas despesas fixas e variáveis por categoria (moradia, alimentação, transporte, lazer e mais). Veja parcelamentos e despesas recorrentes organizados automaticamente.
+
+📌 EMPRÉSTIMOS
+Controle empréstimos que você fez para outras pessoas. Registre o valor, os juros, o número de parcelas e o dia de vencimento. O app calcula automaticamente o saldo devedor e o progresso de pagamento.
+
+📌 RESUMO FINANCEIRO
+Veja de forma visual quanto entra, quanto sai e quanto sobra no mês. Gráficos claros mostram a distribuição das suas despesas por categoria.
+
+━━ SEUS DADOS SÃO SEUS ━━
+
+O Divida Zero não usa internet para nada. Nenhum dado é enviado para servidores externos. Tudo fica salvo no seu aparelho, sob seu total controle.
+
+Use a função de backup para exportar seus dados em JSON e salvar no Google Drive, e-mail ou onde preferir — garantindo que você não perca nada mesmo trocando de celular.
+
+━━ QUEM PODE USAR ━━
+
+• Quem emprestou dinheiro para amigos ou familiares
+• Quem quer controlar melhor as despesas mensais
+• Quem precisa de uma visão clara das finanças pessoais
+• Quem busca um app simples, sem cadastro e sem mensalidade
+
+Baixe agora e comece a ter controle total do seu dinheiro!</div>
+
+      <div class="textbox-label" style="margin-top:16px">
+        Notas de atualização (versão 1.0.0)
+        <button class="copy-btn" onclick="copyText(this, 'release-notes')">Copiar</button>
+      </div>
+      <div class="textbox" id="release-notes">🎉 Lançamento oficial do Divida Zero!
+
+• Controle completo de empréstimos com cálculo automático de juros e parcelas
+• Gestão de despesas por categorias com gráficos
+• Resumo financeiro mensal
+• Proteção por biometria
+• Backup e restauração de dados
+• 100% offline — seus dados ficam só no seu celular</div>
+
+      <hr>
+
+      <p><strong>Categoria:</strong></p>
+      <span class="tag blue">Finanças</span>
+      <br><br>
+
+      <p><strong>Tags / Palavras-chave (adicione no campo de tags):</strong></p>
+      <span class="tag">finanças pessoais</span>
+      <span class="tag">controle de gastos</span>
+      <span class="tag">empréstimos</span>
+      <span class="tag">orçamento</span>
+      <span class="tag">despesas</span>
+      <span class="tag">salário</span>
+      <span class="tag">dividazero</span>
+      <span class="tag">controle financeiro</span>
+    </div>
+  </div>
+
+  <!-- ─────────────── ASSETS ─────────────── -->
+  <div class="step" id="assets">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div>
+        <h2>Ícone, banner e screenshots</h2>
+        <small>Presença na Play Store → Recursos gráficos</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <table>
+        <tr>
+          <th>Item</th>
+          <th>Tamanho</th>
+          <th>Formato</th>
+          <th>Obrigatório?</th>
+        </tr>
+        <tr>
+          <td>Ícone do app</td>
+          <td>1024 × 1024 px</td>
+          <td>PNG (sem transparência)</td>
+          <td><span class="tag">Sim</span></td>
+        </tr>
+        <tr>
+          <td>Gráfico de recurso (banner)</td>
+          <td>1024 × 500 px</td>
+          <td>PNG ou JPG</td>
+          <td><span class="tag">Sim</span></td>
+        </tr>
+        <tr>
+          <td>Screenshots (celular)</td>
+          <td>Mín. 320 × 568 px</td>
+          <td>PNG ou JPG</td>
+          <td><span class="tag">Mín. 2 imagens</span></td>
+        </tr>
+        <tr>
+          <td>Screenshots (tablet 7")</td>
+          <td>Variável</td>
+          <td>PNG ou JPG</td>
+          <td><span class="tag green">Opcional</span></td>
+        </tr>
+        <tr>
+          <td>Vídeo de apresentação</td>
+          <td>URL do YouTube</td>
+          <td>—</td>
+          <td><span class="tag green">Opcional</span></td>
+        </tr>
+      </table>
+
+      <div class="alert info">
+        <span class="alert-icon">📸</span>
+        <div class="alert-body">
+          <strong>Dica para screenshots</strong>
+          <p>Tire prints das telas principais: Início (resumo), Empréstimos, Despesas, Gráfico e a tela de Meus Dados.
+             Use o <a class="ext" href="https://www.canva.com" target="_blank">Canva</a> para criar imagens bonitas colocando os prints dentro de um mockup de celular.</p>
+        </div>
+      </div>
+
+      <div class="alert info" style="margin-top:10px">
+        <span class="alert-icon">🖼️</span>
+        <div class="alert-body">
+          <strong>Gráfico de recurso (banner 1024×500)</strong>
+          <p>É a imagem grande que aparece no topo da página do app na Play Store. Coloque o logo do app no centro com o fundo na cor <strong>#1A1A2E</strong> (azul escuro) e o nome "Divida Zero" em branco ou vermelho <strong>#E94560</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── CLASSIFICAÇÃO ETÁRIA ─────────────── -->
+  <div class="step" id="rating">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div>
+        <h2>Classificação etária (IARC)</h2>
+        <small>Política de conteúdo → Classificação de apps</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>O Google usa o sistema IARC. Responda o questionário honestamente:</p>
+      <ul class="checklist">
+        <li>Clique em <strong>"Iniciar questionário"</strong></li>
+        <li>Categoria: <strong>Utilitários, produtividade e ferramentas</strong></li>
+        <li>Violência: <strong>Não</strong></li>
+        <li>Conteúdo sexual: <strong>Não</strong></li>
+        <li>Linguagem: <strong>Não</strong></li>
+        <li>Conteúdo controlado (álcool, tabaco, jogos): <strong>Não</strong></li>
+        <li>Interação com desconhecidos: <strong>Não</strong></li>
+        <li>Compras dentro do app: <strong>Não</strong></li>
+        <li>Localização compartilhada: <strong>Não</strong></li>
+      </ul>
+      <div class="alert ok" style="margin-top:12px">
+        <span class="alert-icon">✅</span>
+        <div class="alert-body">
+          <strong>Resultado esperado: Livre (L) — Para todos os públicos</strong>
+          <p>O DividaZero não tem nenhum conteúdo restrito. A classificação será "Livre" no Brasil.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── PRIVACIDADE ─────────────── -->
+  <div class="step" id="privacidade">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      <div>
+        <h2>Política de Privacidade — como hospedar gratuitamente</h2>
+        <small>Obrigatória para todos os apps na Play Store</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="alert warn">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-body">
+          <strong>Por que mesmo apps offline precisam?</strong>
+          <p>O Google Play exige uma URL de política de privacidade para qualquer app, independente de coletar dados ou não.
+             É uma exigência da política da plataforma, não do app em si.</p>
+        </div>
+      </div>
+
+      <p style="margin-top:16px"><strong>Opção gratuita recomendada: GitHub Pages</strong></p>
+      <ul class="checklist">
+        <li>Crie um repositório no GitHub (pode ser o mesmo do app)</li>
+        <li>Coloque o arquivo <code>politica-privacidade.html</code> na pasta <code>docs/</code></li>
+        <li>Nas configurações do repositório, ative <strong>GitHub Pages</strong> apontando para a pasta <code>/docs</code></li>
+        <li>Sua URL será: <code>https://seu-usuario.github.io/DividaZero/politica-privacidade.html</code></li>
+        <li>Cole essa URL no campo de Política de Privacidade no Google Play Console</li>
+      </ul>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="info-card">
+          <strong>📄 Arquivo já criado</strong>
+          <span>O arquivo <code>docs/politica-privacidade.html</code> já está no projeto, pronto para hospedar.</span>
+        </div>
+        <div class="info-card">
+          <strong>🔗 Outras opções de hospedagem gratuita</strong>
+          <span>Netlify, Vercel, Cloudflare Pages — todas gratuitas e aceitam HTML estático.</span>
+        </div>
+      </div>
+
+      <hr>
+      <p><strong>Formulário de segurança de dados (Data Safety)</strong></p>
+      <p>No Play Console, preencha o formulário <em>"Segurança de dados"</em> com as seguintes respostas:</p>
+
+      <table>
+        <tr><th>Pergunta</th><th>Resposta</th></tr>
+        <tr><td>O app coleta dados dos usuários?</td><td><span class="tag green">Não</span></td></tr>
+        <tr><td>O app compartilha dados com terceiros?</td><td><span class="tag green">Não</span></td></tr>
+        <tr><td>O app usa criptografia em trânsito?</td><td><span class="tag green">Sim</span> (app é 100% offline)</td></tr>
+        <tr><td>Usuários podem pedir exclusão dos dados?</td><td><span class="tag green">Sim</span> (deletar o app remove tudo)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─────────────── PERMISSÕES ─────────────── -->
+  <div class="step" id="permissoes">
+    <div class="step-header">
+      <div class="step-num">8</div>
+      <div>
+        <h2>Permissões do app — o que declarar</h2>
+        <small>O app usa permissões mínimas</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>O DividaZero usa as seguintes permissões Android (já declaradas no <code>app.json</code>):</p>
+      <table>
+        <tr><th>Permissão</th><th>Para quê serve</th></tr>
+        <tr><td><code>RECEIVE_BOOT_COMPLETED</code></td><td>Reagendar notificações de lembretes após reiniciar o celular</td></tr>
+        <tr><td><code>VIBRATE</code></td><td>Vibrar ao exibir notificações de vencimento</td></tr>
+        <tr><td><code>USE_BIOMETRIC</code></td><td>Desbloqueio por impressão digital</td></tr>
+        <tr><td><code>USE_FINGERPRINT</code></td><td>Compatibilidade com versões antigas do Android</td></tr>
+      </table>
+      <div class="alert ok" style="margin-top:8px">
+        <span class="alert-icon">✅</span>
+        <div class="alert-body">
+          <strong>Sem permissões sensíveis</strong>
+          <p>O app não acessa câmera, microfone, contatos, localização, SMS ou internet. Isso facilita a aprovação.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── DISTRIBUIÇÃO ─────────────── -->
+  <div class="step" id="distribuicao">
+    <div class="step-header">
+      <div class="step-num">9</div>
+      <div>
+        <h2>Preços e distribuição</h2>
+        <small>Onde e como o app será disponibilizado</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="grid-2">
+        <div class="info-card">
+          <strong>💰 Preço</strong>
+          <span>Gratuito</span>
+        </div>
+        <div class="info-card">
+          <strong>🌍 Países</strong>
+          <span>Todos os países (ou apenas Brasil, se preferir)</span>
+        </div>
+        <div class="info-card">
+          <strong>📱 Dispositivos</strong>
+          <span>Telefones e tablets Android</span>
+        </div>
+        <div class="info-card">
+          <strong>🔞 Conteúdo</strong>
+          <span>Adequado para todas as idades</span>
+        </div>
+      </div>
+
+      <div class="alert info" style="margin-top:16px">
+        <span class="alert-icon">💡</span>
+        <div class="alert-body">
+          <strong>Android mínimo recomendado</strong>
+          <p>Configure <code>minSdkVersion: 23</code> no <code>app.json</code> para suportar Android 6.0+.
+             Isso cobre mais de 98% dos dispositivos ativos.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── ENVIO ─────────────── -->
+  <div class="step" id="envio">
+    <div class="step-header">
+      <div class="step-num">10</div>
+      <div>
+        <h2>Enviar o AAB para o Google Play</h2>
+        <small>Produção → Versões do app → Criar versão</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li>No Play Console, vá em <strong>Produção → Criar versão</strong></li>
+        <li>Aceite a assinatura pelo Google (recomendado)</li>
+        <li>Clique em <strong>"Upload"</strong> e selecione o arquivo <code>.aab</code> baixado do Expo</li>
+        <li>Cole as notas de atualização (texto já pronto no Passo 4)</li>
+        <li>Clique em <strong>"Salvar"</strong> e depois <strong>"Analisar versão"</strong></li>
+        <li>Corrija qualquer alerta exibido</li>
+        <li>Clique em <strong>"Iniciar lançamento para produção"</strong></li>
+      </ul>
+
+      <div class="alert warn" style="margin-top:12px">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-body">
+          <strong>Lançamento gradual vs. completo</strong>
+          <p>O Google oferece lançamento para 10%, 20%, 50% ou 100% dos usuários. Para o primeiro lançamento, use <strong>100%</strong> diretamente, pois você não tem base de usuários ainda.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── REVISÃO ─────────────── -->
+  <div class="step" id="revisao">
+    <div class="step-header">
+      <div class="step-num">11</div>
+      <div>
+        <h2>Revisão e aprovação</h2>
+        <small>O Google analisa o app antes de publicar</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <table>
+        <tr><th>Situação</th><th>Prazo estimado</th></tr>
+        <tr><td>Primeira publicação</td><td>3 a 7 dias úteis</td></tr>
+        <tr><td>Atualizações</td><td>1 a 3 dias úteis</td></tr>
+        <tr><td>App rejeitado</td><td>Corrigir e reenviar — novo prazo</td></tr>
+      </table>
+
+      <div class="alert ok" style="margin-top:16px">
+        <span class="alert-icon">✅</span>
+        <div class="alert-body">
+          <strong>Motivos comuns de rejeição (e como evitar)</strong>
+        </div>
+      </div>
+      <ul class="checklist">
+        <li>❌ Sem política de privacidade → ✅ Já temos (passo 7)</li>
+        <li>❌ Screenshots de baixa qualidade → ✅ Use mockups no Canva</li>
+        <li>❌ Descrição vaga ou incompleta → ✅ Use o texto do passo 4</li>
+        <li>❌ Ícone com bordas transparentes → ✅ PNG sem transparência 1024×1024</li>
+        <li>❌ Formulário de Segurança de Dados incompleto → ✅ Preencher (passo 7)</li>
+      </ul>
+
+      <div class="alert info" style="margin-top:16px">
+        <span class="alert-icon">📧</span>
+        <div class="alert-body">
+          <strong>Você receberá um e-mail</strong>
+          <p>O Google avisa por e-mail quando o app é aprovado ou se há problemas. Fique de olho na caixa de entrada do Gmail cadastrado no Play Console.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST FINAL -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" style="background:var(--green)">✓</div>
+      <div>
+        <h2>Checklist Final — antes de enviar</h2>
+        <small>Confira tudo antes de clicar em "Enviar para revisão"</small>
+      </div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li>Arquivo .aab gerado com <code>eas build --platform android --profile production</code></li>
+        <li>Ícone 1024×1024 PNG sem transparência</li>
+        <li>Gráfico de recurso 1024×500 PNG</li>
+        <li>Pelo menos 2 screenshots do celular</li>
+        <li>Nome do app preenchido (Divida Zero)</li>
+        <li>Descrição curta preenchida (máx. 80 caracteres)</li>
+        <li>Descrição completa preenchida</li>
+        <li>Categoria: Finanças</li>
+        <li>Classificação etária concluída (Livre)</li>
+        <li>Formulário de Segurança de Dados preenchido</li>
+        <li>URL da política de privacidade preenchida</li>
+        <li>Preço: Gratuito</li>
+        <li>Países de distribuição selecionados</li>
+        <li>Notas de atualização preenchidas</li>
+      </ul>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>Guia gerado para o <strong>DividaZero</strong> — App de Controle Financeiro Pessoal</p>
+  <p style="margin-top:8px">Política de Privacidade: <a class="ext" href="politica-privacidade.html" style="color:#E94560">ver página</a></p>
+</footer>
+
+<script>
+  function copyText(btn, id) {
+    const text = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copiado!';
+      btn.style.background = '#00B894';
+      setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>

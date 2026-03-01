@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — Divida Zero</title>
+  <meta name="description" content="Política de Privacidade do aplicativo Divida Zero. App 100% offline, sem coleta de dados." />
+  <style>
+    :root {
+      --navy: #1A1A2E;
+      --red: #E94560;
+      --green: #00B894;
+      --text: #2D3436;
+      --text2: #636E72;
+      --border: #DFE6E9;
+      --bg: #F0F2F5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 52px 24px 40px;
+      text-align: center;
+    }
+    .logo-badge {
+      width: 64px;
+      height: 64px;
+      background: var(--red);
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 18px;
+      letter-spacing: -1px;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+    header h1 span { color: var(--red); }
+    header p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 8px;
+    }
+    .updated {
+      display: inline-block;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 12px;
+    }
+
+    /* HIGHLIGHT STRIP */
+    .highlight-strip {
+      background: var(--green);
+      color: #fff;
+      text-align: center;
+      padding: 14px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* CARD */
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card h2 .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(233,69,96,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .card p {
+      font-size: 14.5px;
+      color: var(--text2);
+      margin-bottom: 12px;
+    }
+    .card p:last-child { margin-bottom: 0; }
+    .card ul {
+      padding-left: 0;
+      list-style: none;
+    }
+    .card ul li {
+      font-size: 14.5px;
+      color: var(--text2);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .card ul li:last-child { border-bottom: none; }
+    .card ul li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* TABLE */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    th {
+      background: var(--navy);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text2);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: var(--bg); }
+    .no { color: var(--red); font-weight: 700; }
+    .yes { color: var(--green); font-weight: 700; }
+
+    /* CONTACT */
+    .contact-box {
+      background: var(--navy);
+      border-radius: 14px;
+      padding: 28px 30px;
+      color: #fff;
+      text-align: center;
+    }
+    .contact-box h2 { font-size: 1.1rem; margin-bottom: 10px; }
+    .contact-box p { color: rgba(255,255,255,0.65); font-size: 14px; }
+    .contact-box a {
+      display: inline-block;
+      background: var(--red);
+      color: #fff;
+      text-decoration: none;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-weight: 700;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 28px 24px;
+      background: var(--navy);
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+    }
+    footer strong { color: rgba(255,255,255,0.7); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">DZ</div>
+  <h1><span>Divida Zero</span></h1>
+  <p>Política de Privacidade</p>
+  <div class="updated">Última atualização: março de 2026</div>
+</header>
+
+<div class="highlight-strip">
+  <span>🔒</span>
+  <span>Este app é 100% offline — não coletamos, armazenamos nem compartilhamos nenhum dado seu em servidores.</span>
+</div>
+
+<main>
+
+  <!-- INTRODUÇÃO -->
+  <div class="card">
+    <h2><span class="icon">📄</span> Introdução</h2>
+    <p>
+      Esta Política de Privacidade descreve como o aplicativo <strong>Divida Zero</strong>
+      ("nós", "nosso", "o App") trata as informações dos usuários ("você").
+    </p>
+    <p>
+      Ao instalar e usar o Divida Zero, você concorda com os termos descritos nesta política.
+      Se não concordar com qualquer parte, por favor, não utilize o App.
+    </p>
+    <p>
+      <strong>Desenvolvedor:</strong> Divida Zero — Aplicativo de Finanças Pessoais<br />
+      <strong>Contato:</strong> consulte a seção de contato ao final desta página.
+    </p>
+  </div>
+
+  <!-- COLETA DE DADOS -->
+  <div class="card">
+    <h2><span class="icon">🚫</span> Dados que NÃO coletamos</h2>
+    <p>O Divida Zero foi projetado com privacidade por padrão. O App <strong>não coleta absolutamente nenhum dado pessoal</strong>. Especificamente:</p>
+    <ul>
+      <li>Não coletamos nome, e-mail, telefone ou qualquer dado de identificação pessoal</li>
+      <li>Não coletamos dados financeiros para nossos servidores</li>
+      <li>Não rastreamos localização geográfica</li>
+      <li>Não acessamos contatos, câmera, microfone ou galeria de fotos</li>
+      <li>Não coletamos dados de uso, comportamento ou analytics</li>
+      <li>Não coletamos informações do dispositivo ou identificadores únicos</li>
+      <li>Não exibimos anúncios e não compartilhamos dados com redes de publicidade</li>
+      <li>Não enviamos dados para servidores de terceiros</li>
+    </ul>
+  </div>
+
+  <!-- ONDE FICAM OS DADOS -->
+  <div class="card">
+    <h2><span class="icon">📱</span> Onde seus dados ficam armazenados</h2>
+    <p>
+      Todos os dados inseridos no Divida Zero (valores de empréstimos, despesas, salário, etc.)
+      são armazenados <strong>exclusivamente no seu próprio dispositivo</strong>, em um banco de dados local
+      (SQLite) que nenhum outro app ou servidor pode acessar.
+    </p>
+    <p>
+      <strong>Consequências importantes:</strong>
+    </p>
+    <ul>
+      <li>Se você desinstalar o App, todos os dados são apagados permanentemente</li>
+      <li>Se você formatar o celular sem fazer backup, os dados são perdidos</li>
+      <li>Nós não temos acesso aos seus dados e não conseguimos recuperá-los</li>
+      <li>Seus dados nunca saem do seu celular, a menos que você mesmo os exporte</li>
+    </ul>
+  </div>
+
+  <!-- PERMISSÕES -->
+  <div class="card">
+    <h2><span class="icon">🔑</span> Permissões utilizadas pelo App</h2>
+    <p>O Divida Zero utiliza apenas as permissões estritamente necessárias para seu funcionamento:</p>
+    <table>
+      <tr>
+        <th>Permissão</th>
+        <th>Motivo</th>
+        <th>Dados coletados?</th>
+      </tr>
+      <tr>
+        <td><code>USE_BIOMETRIC</code><br /><code>USE_FINGERPRINT</code></td>
+        <td>Desbloquear o app com impressão digital ou Face ID. A autenticação ocorre localmente no dispositivo.</td>
+        <td><span class="no">Não</span></td>
+      </tr>
+      <tr>
+        <td><code>RECEIVE_BOOT_COMPLETED</code></td>
+        <td>Reativar notificações de lembretes de vencimento após reiniciar o celular.</td>
+        <td><span class="no">Não</span></td>
+      </tr>
+      <tr>
+        <td><code>VIBRATE</code></td>
+        <td>Vibrar ao exibir notificações locais de vencimento.</td>
+        <td><span class="no">Não</span></td>
+      </tr>
+    </table>
+    <p style="margin-top:14px">
+      O App <strong>não solicita permissão de internet</strong>, portanto é tecnicamente impossível
+      que qualquer dado seja transmitido pela rede.
+    </p>
+  </div>
+
+  <!-- NOTIFICAÇÕES -->
+  <div class="card">
+    <h2><span class="icon">🔔</span> Notificações locais</h2>
+    <p>
+      O Divida Zero pode enviar notificações locais para lembrar sobre vencimentos de empréstimos.
+      Essas notificações são geradas e exibidas inteiramente no seu dispositivo, sem nenhuma conexão
+      a servidores externos.
+    </p>
+    <p>
+      Você pode desativar essas notificações a qualquer momento nas configurações do seu Android.
+    </p>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="card">
+    <h2><span class="icon">☁️</span> Função de Backup e Exportação</h2>
+    <p>
+      O App oferece a opção de exportar seus dados em formato JSON para fins de backup pessoal.
+      Ao usar essa função, você pode compartilhar o arquivo via Google Drive, e-mail ou outros serviços
+      de sua escolha.
+    </p>
+    <p>
+      <strong>Importante:</strong> O destino dos dados exportados é de sua inteira responsabilidade.
+      Nós não recebemos, armazenamos nem temos acesso aos dados exportados.
+      As políticas de privacidade dos serviços onde você salvar o backup (Google Drive, etc.)
+      se aplicam separadamente.
+    </p>
+  </div>
+
+  <!-- TERCEIROS -->
+  <div class="card">
+    <h2><span class="icon">🤝</span> Serviços de terceiros</h2>
+    <p>O App é construído com o framework <strong>Expo / React Native</strong>. Durante o uso normal,
+       o App não se comunica com nenhum servidor externo.</p>
+    <p>
+      O Expo SDK pode, durante o processo de build ou atualização do próprio App, fazer comunicações
+      com servidores da Expo Inc., mas isso ocorre fora do contexto de uso do usuário final e não
+      envolve dados pessoais dos usuários.
+    </p>
+    <ul>
+      <li>Sem Google Analytics ou Firebase</li>
+      <li>Sem Facebook SDK ou outros SDKs de rastreamento</li>
+      <li>Sem serviços de crash reporting com dados de usuário</li>
+      <li>Sem serviços de publicidade</li>
+    </ul>
+  </div>
+
+  <!-- CRIANÇAS -->
+  <div class="card">
+    <h2><span class="icon">👶</span> Privacidade de menores</h2>
+    <p>
+      O Divida Zero não é direcionado a crianças menores de 13 anos. Como o App não coleta
+      nenhum dado pessoal de nenhum usuário, não há coleta intencional ou não-intencional de
+      dados de menores.
+    </p>
+  </div>
+
+  <!-- SEGURANÇA -->
+  <div class="card">
+    <h2><span class="icon">🛡️</span> Segurança dos dados</h2>
+    <p>
+      Como todos os dados ficam armazenados localmente no seu dispositivo, a segurança depende
+      principalmente das proteções nativas do Android (criptografia do sistema de arquivos,
+      bloqueio de tela, etc.).
+    </p>
+    <p>
+      O Divida Zero oferece adicionalmente a opção de proteger o acesso ao App com biometria
+      (impressão digital ou reconhecimento facial), processada localmente pelo sistema operacional.
+    </p>
+  </div>
+
+  <!-- ALTERAÇÕES -->
+  <div class="card">
+    <h2><span class="icon">✏️</span> Alterações nesta política</h2>
+    <p>
+      Podemos atualizar esta Política de Privacidade ocasionalmente. Caso haja mudanças significativas,
+      notificaremos através de uma atualização do App na Google Play Store.
+    </p>
+    <p>
+      A data de "Última atualização" no topo desta página indica quando a política foi revisada pela
+      última vez. Recomendamos verificar esta página periodicamente.
+    </p>
+  </div>
+
+  <!-- SEUS DIREITOS -->
+  <div class="card">
+    <h2><span class="icon">⚖️</span> Seus direitos (LGPD)</h2>
+    <p>
+      De acordo com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), você tem direito a:
+    </p>
+    <ul>
+      <li>Confirmar a existência de tratamento de dados pessoais (resposta: não há tratamento)</li>
+      <li>Acessar seus dados (todos estão no seu próprio dispositivo)</li>
+      <li>Solicitar a exclusão dos dados (basta desinstalar o App)</li>
+      <li>Revogar o consentimento (basta desinstalar o App)</li>
+      <li>Obter informações sobre o compartilhamento de dados (não há compartilhamento)</li>
+    </ul>
+    <p>
+      Como o App não processa dados pessoais em nossos sistemas, a maioria dos direitos da LGPD
+      é exercida diretamente por você no seu próprio dispositivo.
+    </p>
+  </div>
+
+  <!-- CONTATO -->
+  <div class="contact-box">
+    <h2>Dúvidas sobre privacidade?</h2>
+    <p>
+      Se você tiver alguma dúvida sobre esta Política de Privacidade ou sobre como o App funciona,
+      entre em contato conosco. Responderemos o mais breve possível.
+    </p>
+    <a href="mailto:contato@dividazero.app">contato@dividazero.app</a>
+  </div>
+
+</main>
+
+<footer>
+  <p><strong>Divida Zero</strong> — App de Controle Financeiro Pessoal</p>
+  <p style="margin-top:6px">Versão do App: 1.0.0 · Política vigente desde março de 2026</p>
+  <p style="margin-top:6px">
+    <a href="guia-google-play.html" style="color: #E94560; text-decoration: none;">← Guia de publicação na Play Store</a>
+  </p>
+</footer>
+
+</body>
+</html>
