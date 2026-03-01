@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Linking,
 } from 'react-native';
 import {
   DrawerContentScrollView,
@@ -122,6 +123,12 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       <View style={styles.footer}>
         <View style={styles.divider} />
         <Text style={styles.footerText}>v1.0.0 · Legislação 2026</Text>
+        <Text style={styles.footerCreator}>Criado por Julio Lemos</Text>
+        <TouchableOpacity
+          onPress={() => Linking.openURL('https://jc2x7.github.io/DividaZero/politica-privacidade.html')}
+        >
+          <Text style={styles.footerLink}>Política de Privacidade</Text>
+        </TouchableOpacity>
       </View>
     </DrawerContentScrollView>
   );
@@ -221,5 +228,19 @@ const styles = StyleSheet.create({
     color: 'rgba(178,190,195,0.4)',
     fontSize: 11,
     marginTop: 12,
+  },
+  footerCreator: {
+    textAlign: 'center',
+    color: 'rgba(178,190,195,0.55)',
+    fontSize: 11,
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  footerLink: {
+    textAlign: 'center',
+    color: COLORS.highlight,
+    fontSize: 11,
+    marginTop: 4,
+    textDecorationLine: 'underline',
   },
 });
