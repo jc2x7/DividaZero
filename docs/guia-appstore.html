@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guia App Store Connect – DividaZero</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      line-height: 1.6;
+    }
+    header {
+      background: linear-gradient(135deg, #1c1c1e, #2c2c2e);
+      color: #fff;
+      padding: 48px 32px 36px;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; font-weight: 700; }
+    header p { margin-top: 8px; color: #a1a1a6; font-size: 0.95rem; }
+
+    main { max-width: 860px; margin: 40px auto; padding: 0 20px 80px; }
+
+    .step {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      border-left: 5px solid #0071e3;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .step-number {
+      background: #0071e3;
+      color: #fff;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .step h2 { font-size: 1.15rem; font-weight: 600; }
+    .step p, .step li { font-size: 0.93rem; color: #3a3a3c; }
+    ul { padding-left: 20px; margin-top: 8px; }
+    li { margin-bottom: 6px; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .badge-req  { background: #ffeeba; color: #856404; }
+    .badge-tip  { background: #d1ecf1; color: #0c5460; }
+    .badge-warn { background: #f8d7da; color: #842029; }
+
+    code {
+      background: #f0f0f5;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.85rem;
+      font-family: 'SF Mono', monospace;
+      color: #c0392b;
+    }
+
+    .info-box {
+      background: #f0f7ff;
+      border: 1px solid #b8d4f5;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 14px;
+      font-size: 0.88rem;
+      color: #1a3c5e;
+    }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .screenshot-item {
+      background: #f0f0f5;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      text-align: center;
+      color: #3a3a3c;
+    }
+    .screenshot-item strong { display: block; margin-bottom: 4px; color: #1d1d1f; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.88rem;
+    }
+    th {
+      background: #f0f0f5;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #e0e0e5;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0f0f5;
+      color: #3a3a3c;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    .checklist label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-size: 0.92rem;
+    }
+    .checklist input[type="checkbox"] {
+      margin-top: 3px;
+      width: 16px;
+      height: 16px;
+      accent-color: #0071e3;
+      flex-shrink: 0;
+    }
+    .checklist label.done { text-decoration: line-through; color: #888; }
+
+    footer {
+      text-align: center;
+      color: #888;
+      font-size: 0.8rem;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>App Store Connect – DividaZero</h1>
+  <p>Passo a passo completo para publicar o app na App Store</p>
+</header>
+
+<main>
+
+  <!-- PRÉ-REQUISITOS -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">0</div>
+      <h2>Pré-requisitos <span class="badge badge-req">Obrigatório</span></h2>
+    </div>
+    <ul>
+      <li>Conta ativa no <strong>Apple Developer Program</strong> (USD 99/ano)</li>
+      <li>Mac com <strong>Xcode 15+</strong> instalado (ou usar EAS Build da Expo)</li>
+      <li>Bundle ID definido: <code>com.jc2x7.dividazero</code></li>
+      <li>Ícone do app em 1024×1024 px (PNG sem transparência)</li>
+      <li>Screenshots tiradas com o app rodando em dados demo</li>
+    </ul>
+    <div class="info-box">
+      💡 Se usar <strong>Expo EAS Build</strong>, você não precisa de Mac — o build é feito na nuvem.
+      Rode: <code>eas build --platform ios --profile production</code>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <h2>Criar o app no App Store Connect</h2>
+    </div>
+    <ul>
+      <li>Acesse <strong>appstoreconnect.apple.com</strong> e faça login</li>
+      <li>Clique em <strong>Meus Apps → + → Novo App</strong></li>
+      <li>Preencha:
+        <ul>
+          <li><strong>Plataformas:</strong> iOS</li>
+          <li><strong>Nome:</strong> DividaZero</li>
+          <li><strong>Idioma primário:</strong> Português (Brasil)</li>
+          <li><strong>Bundle ID:</strong> <code>com.jc2x7.dividazero</code></li>
+          <li><strong>SKU:</strong> <code>dividazero-2026</code></li>
+          <li><strong>Acesso ao usuário:</strong> Acesso completo</li>
+        </ul>
+      </li>
+      <li>Clique em <strong>Criar</strong></li>
+    </ul>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <h2>Informações do app (Metadados)</h2>
+    </div>
+    <table>
+      <tr><th>Campo</th><th>Valor sugerido</th></tr>
+      <tr><td>Nome do app</td><td>DividaZero</td></tr>
+      <tr><td>Subtítulo</td><td>Controle suas dívidas e empréstimos</td></tr>
+      <tr><td>Categoria principal</td><td>Finanças</td></tr>
+      <tr><td>Categoria secundária</td><td>Produtividade</td></tr>
+      <tr><td>Palavras-chave</td><td>dívida, empréstimo, financeiro, controle, parcelamento, salário, orçamento</td></tr>
+      <tr><td>URL de suporte</td><td>https://jc2x7.github.io/DividaZero</td></tr>
+      <tr><td>URL de marketing</td><td>https://jc2x7.github.io/DividaZero</td></tr>
+      <tr><td>URL de política de privacidade</td><td>https://jc2x7.github.io/DividaZero/politica-privacidade.html</td></tr>
+    </table>
+
+    <div class="info-box" style="margin-top: 16px;">
+      <strong>Descrição sugerida:</strong><br><br>
+      O DividaZero é o app ideal para quem quer organizar as finanças pessoais com clareza e sem complicação.<br><br>
+      Cadastre suas dívidas fixas e parceladas, acompanhe empréstimos feitos a terceiros com juros automáticos e veja em tempo real quanto sobra do seu salário no fim do mês.<br><br>
+      ✔ Controle de despesas fixas e parceladas<br>
+      ✔ Gestão de empréstimos com cálculo de juros<br>
+      ✔ Resumo mensal com saldo disponível<br>
+      ✔ Alertas de vencimento<br>
+      ✔ Backup e restauração de dados<br>
+      ✔ 100% offline — seus dados ficam no seu aparelho
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <h2>Screenshots <span class="badge badge-tip">Use os dados demo</span></h2>
+    </div>
+    <p>Tire os prints com o app carregado com o JSON demo. Tamanhos obrigatórios:</p>
+    <div class="screenshots-grid">
+      <div class="screenshot-item">
+        <strong>iPhone 6.9"</strong>
+        1320 × 2868 px<br>(iPhone 16 Pro Max)
+      </div>
+      <div class="screenshot-item">
+        <strong>iPhone 6.5"</strong>
+        1242 × 2688 px<br>(iPhone 11 Pro Max)
+      </div>
+      <div class="screenshot-item">
+        <strong>iPhone 5.5"</strong>
+        1242 × 2208 px<br>(iPhone 8 Plus)
+      </div>
+      <div class="screenshot-item">
+        <strong>iPad 13" Pro</strong>
+        2064 × 2752 px<br>(se tiver versão iPad)
+      </div>
+    </div>
+    <ul style="margin-top: 16px;">
+      <li>Mínimo <strong>3 screenshots</strong>, máximo <strong>10</strong> por tamanho</li>
+      <li>Sugestão de telas: Resumo do mês → Lista de dívidas → Detalhe de empréstimo → Gráfico de categorias</li>
+      <li>Formato: <strong>PNG ou JPEG</strong>, sem bordas ou sombras artificiais</li>
+    </ul>
+    <div class="info-box">
+      ⚠️ O tamanho <strong>6.9"</strong> é obrigatório a partir de 2024. Se não tiver iPhone 16 Pro Max, use o Simulador do Xcode.
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <h2>Classificação etária (Rating)</h2>
+    </div>
+    <ul>
+      <li>Clique em <strong>Classificação etária</strong> e responda o questionário</li>
+      <li>Para o DividaZero: marque <strong>Não</strong> para todas as perguntas</li>
+      <li>Resultado esperado: <strong>Classificação 4+</strong></li>
+    </ul>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">5</div>
+      <h2>Preço e disponibilidade</h2>
+    </div>
+    <ul>
+      <li>Acesse a aba <strong>Preço e Disponibilidade</strong></li>
+      <li>Defina o preço: <strong>Grátis</strong> (ou o plano escolhido)</li>
+      <li>Disponibilidade: <strong>Todos os países</strong> (ou selecione manualmente)</li>
+      <li>Distribuição: <strong>Pública</strong></li>
+    </ul>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">6</div>
+      <h2>Privacidade dos dados</h2>
+    </div>
+    <ul>
+      <li>Acesse a aba <strong>Privacidade do App</strong></li>
+      <li>Clique em <strong>Começar</strong> e responda:</li>
+    </ul>
+    <table>
+      <tr><th>Pergunta</th><th>Resposta</th></tr>
+      <tr><td>O app coleta dados dos usuários?</td><td><strong>Não</strong> (dados ficam no dispositivo)</td></tr>
+      <tr><td>Usa rastreamento entre apps?</td><td><strong>Não</strong></td></tr>
+    </table>
+    <div class="info-box">
+      O DividaZero não envia dados a servidores externos, então a resposta é sempre <strong>Não coleta dados</strong>.
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">7</div>
+      <h2>Gerar e enviar o Build <span class="badge badge-warn">Técnico</span></h2>
+    </div>
+    <p><strong>Opção A – EAS Build (Expo, sem Mac):</strong></p>
+    <ul>
+      <li><code>eas build --platform ios --profile production</code></li>
+      <li>Após o build: <code>eas submit --platform ios</code></li>
+      <li>O build é enviado automaticamente ao App Store Connect</li>
+    </ul>
+    <br>
+    <p><strong>Opção B – Xcode (Mac):</strong></p>
+    <ul>
+      <li>Abra o projeto no Xcode: <code>npx expo run:ios</code></li>
+      <li>Menu <strong>Product → Archive</strong></li>
+      <li>No Organizer: clique em <strong>Distribute App → App Store Connect</strong></li>
+      <li>Siga o assistente e clique em <strong>Upload</strong></li>
+    </ul>
+    <div class="info-box">
+      Após o upload, aguarde de <strong>5 a 30 minutos</strong> para o build aparecer no App Store Connect.
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">8</div>
+      <h2>Vincular o Build à versão</h2>
+    </div>
+    <ul>
+      <li>No App Store Connect, vá em <strong>TestFlight</strong> e confirme que o build apareceu</li>
+      <li>Volte para <strong>App Store → Versão 1.0.0</strong></li>
+      <li>Role até <strong>Build</strong> e clique em <strong>+ Selecionar um Build</strong></li>
+      <li>Escolha o build enviado</li>
+    </ul>
+  </div>
+
+  <!-- STEP 9 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number">9</div>
+      <h2>Enviar para revisão</h2>
+    </div>
+    <ul>
+      <li>Revise todos os campos — o botão <strong>Enviar para revisão</strong> fica ativo quando tudo estiver preenchido</li>
+      <li>Responda as perguntas finais:
+        <ul>
+          <li>O app usa o sistema de publicidade da Apple (IDFA)? <strong>Não</strong></li>
+          <li>O app está criptografado? <strong>Não</strong> (a menos que use https customizado)</li>
+        </ul>
+      </li>
+      <li>Clique em <strong>Enviar para revisão</strong></li>
+      <li>Prazo de revisão: geralmente <strong>24 a 48 horas</strong></li>
+    </ul>
+  </div>
+
+  <!-- CHECKLIST FINAL -->
+  <div class="step" style="border-left-color: #34c759;">
+    <div class="step-header">
+      <div class="step-number" style="background:#34c759;">✓</div>
+      <h2>Checklist Final</h2>
+    </div>
+    <div class="checklist">
+      <label><input type="checkbox"> App criado no App Store Connect</label>
+      <label><input type="checkbox"> Metadados preenchidos (nome, descrição, palavras-chave)</label>
+      <label><input type="checkbox"> URL de política de privacidade informada</label>
+      <label><input type="checkbox"> Screenshots enviadas (mínimo 6.9" e 6.5")</label>
+      <label><input type="checkbox"> Ícone 1024×1024 px enviado</label>
+      <label><input type="checkbox"> Classificação etária concluída (4+)</label>
+      <label><input type="checkbox"> Preço definido</label>
+      <label><input type="checkbox"> Privacidade dos dados respondida</label>
+      <label><input type="checkbox"> Build enviado via EAS ou Xcode</label>
+      <label><input type="checkbox"> Build vinculado à versão</label>
+      <label><input type="checkbox"> Enviado para revisão ✅</label>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>DividaZero · Criado por Julio Lemos · 2026</p>
+</footer>
+
+</body>
+</html>
