@@ -36,6 +36,7 @@ export default function DashboardScreen() {
   const [salaryInput, setSalaryInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'ALL'>('ALL');
+  const [showCharts, setShowCharts] = useState(false);
 
   const { expenses, salary, summary, loading, reload } = useMonthData(year, month);
 
@@ -114,68 +115,24 @@ export default function DashboardScreen() {
           balance={summary.balance}
         />
 
-        {/* ── Donut: Pagas vs Pendentes ── */}
-        {expenses.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Status das Despesas</Text>
-            <View style={styles.donutCard}>
-              <DonutChart
-                size={150}
-                strokeWidth={28}
-                data={[
-                  {
-                    value: summary.paidTotal,
-                    color: COLORS.success,
-                    label: 'Pagas',
-                    sublabel: formatCurrency(summary.paidTotal),
-                  },
-                  {
-                    value: summary.unpaidTotal,
-                    color: COLORS.error,
-                    label: 'Pendentes',
-                    sublabel: formatCurrency(summary.unpaidTotal),
-                  },
-                ]}
-                centerLabel={
-                  summary.totalExpenses > 0
-                    ? `${Math.round((summary.paidTotal / summary.totalExpenses) * 100)}%`
-                    : '0%'
-                }
-                centerSub="pago"
-              />
-            </View>
-          </View>
-        )}
-
-        {/* ── Donut: Por Categoria ── */}
-        {summary.categoryBreakdown.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Distribuição por Categoria</Text>
-            <View style={styles.donutCard}>
-              <DonutChart
-                size={150}
-                strokeWidth={28}
-                data={summary.categoryBreakdown.map((cat) => {
-                  const cfg = getCategoryConfig(cat.category);
-                  return {
-                    value: cat.total,
-                    color: cfg.color,
-                    label: cfg.label,
-                    sublabel: formatCurrency(cat.total),
-                  };
-                })}
-                centerLabel={formatCurrency(summary.totalExpenses)}
-                centerSub="total"
-              />
-            </View>
-          </View>
-        )}
-
         {/* Category Filter */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Despesas de {getMonthName(month)}/{year}
-          </Text>
+          <View style={styles.sectionHeader}>
+            {expenses.length > 0 ? (
+              <TouchableOpacity
+                style={styles.infoBtn}
+                onPress={() => setShowCharts(true)}
+                hitSlop={8}
+              >
+                <MaterialCommunityIcons name="information" size={20} color={COLORS.highlight} />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.infoBtnPlaceholder} />
+            )}
+            <Text style={styles.sectionTitle}>
+              Despesas de {getMonthName(month)}/{year}
+            </Text>
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -256,6 +213,81 @@ export default function DashboardScreen() {
         year={year}
         month={month}
       />
+
+      {/* ── Charts Modal ── */}
+      <Modal
+        visible={showCharts}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCharts(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, styles.chartsSheet]}>
+            <View style={styles.handle} />
+            <View style={styles.chartsHeader}>
+              <Text style={styles.modalTitle}>
+                Análise · {getMonthName(month)}/{year}
+              </Text>
+              <TouchableOpacity onPress={() => setShowCharts(false)} style={{ padding: 4 }}>
+                <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Status pago / pendente */}
+              <View style={styles.chartSection}>
+                <Text style={styles.chartSectionTitle}>Status das Despesas</Text>
+                <DonutChart
+                  size={200}
+                  strokeWidth={36}
+                  data={[
+                    {
+                      value: summary.paidTotal,
+                      color: COLORS.success,
+                      label: 'Pagas',
+                      sublabel: formatCurrency(summary.paidTotal),
+                    },
+                    {
+                      value: summary.unpaidTotal,
+                      color: COLORS.error,
+                      label: 'Pendentes',
+                      sublabel: formatCurrency(summary.unpaidTotal),
+                    },
+                  ]}
+                  centerLabel={
+                    summary.totalExpenses > 0
+                      ? `${Math.round((summary.paidTotal / summary.totalExpenses) * 100)}%`
+                      : '0%'
+                  }
+                  centerSub="pago"
+                />
+              </View>
+
+              {/* Por categoria */}
+              {summary.categoryBreakdown.length > 0 && (
+                <View style={styles.chartSection}>
+                  <Text style={styles.chartSectionTitle}>Por Categoria</Text>
+                  <DonutChart
+                    size={200}
+                    strokeWidth={36}
+                    data={summary.categoryBreakdown.map((cat) => {
+                      const cfg = getCategoryConfig(cat.category);
+                      return {
+                        value: cat.total,
+                        color: cfg.color,
+                        label: cfg.label,
+                        sublabel: formatCurrency(cat.total),
+                      };
+                    })}
+                    centerLabel={formatCurrency(summary.totalExpenses)}
+                    centerSub="total"
+                  />
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Salary Modal */}
       <Modal
@@ -376,18 +408,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.text,
+    flex: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
-  donutCard: {
-    backgroundColor: COLORS.card,
+  infoBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: `${COLORS.highlight}15`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  infoBtnPlaceholder: {
+    width: 28,
+    height: 28,
+  },
+  chartsSheet: {
+    maxHeight: '90%',
+  },
+  chartsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  chartSection: {
+    backgroundColor: COLORS.background,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 16,
+  },
+  chartSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 16,
+    alignSelf: 'flex-start',
   },
   filterRow: {
     gap: 8,
