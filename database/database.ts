@@ -65,6 +65,21 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Migrations: add new columns to expenses if they don't exist yet
+  const migrations = [
+    'ALTER TABLE expenses ADD COLUMN due_day INTEGER',
+    'ALTER TABLE expenses ADD COLUMN alert_enabled INTEGER DEFAULT 0',
+    'ALTER TABLE expenses ADD COLUMN is_paid INTEGER DEFAULT 0',
+    'ALTER TABLE expenses ADD COLUMN notification_id TEXT',
+  ];
+  for (const sql of migrations) {
+    try {
+      await database.execAsync(sql);
+    } catch {
+      // Column already exists — ignore
+    }
+  }
 }
 
 // ============================================================
@@ -130,8 +145,9 @@ export async function addExpense(
   const result = await db.runAsync(
     `INSERT INTO expenses
       (name, category, amount, type, installments_total, installments_current,
-       start_date, end_date, year, month, is_active, parent_id, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       start_date, end_date, year, month, is_active, parent_id, notes,
+       due_day, alert_enabled, is_paid, notification_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       expense.name,
       expense.category,
@@ -146,9 +162,23 @@ export async function addExpense(
       expense.is_active,
       expense.parent_id ?? null,
       expense.notes ?? null,
+      expense.due_day ?? null,
+      expense.alert_enabled ?? 0,
+      expense.is_paid ?? 0,
+      expense.notification_id ?? null,
     ]
   );
   return result.lastInsertRowId;
+}
+
+export async function toggleExpensePaid(id: number, isPaid: boolean): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE expenses SET is_paid = ? WHERE id = ?', [isPaid ? 1 : 0, id]);
+}
+
+export async function updateExpenseNotificationId(id: number, notificationId: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE expenses SET notification_id = ? WHERE id = ?', [notificationId, id]);
 }
 
 /**
@@ -178,8 +208,8 @@ export async function addFixedExpense(
     await db.runAsync(
       `INSERT INTO expenses
         (name, category, amount, type, installments_total, installments_current,
-         start_date, year, month, is_active, parent_id)
-       VALUES (?, ?, ?, 'FIXED', 1, 1, ?, ?, ?, 1, ?)`,
+         start_date, year, month, is_active, parent_id, due_day)
+       VALUES (?, ?, ?, 'FIXED', 1, 1, ?, ?, ?, 1, ?, ?)`,
       [
         baseExpense.name,
         baseExpense.category,
@@ -188,6 +218,7 @@ export async function addFixedExpense(
         futureYear,
         futureMonth,
         parentId,
+        baseExpense.due_day ?? null,
       ]
     );
   }
@@ -404,13 +435,15 @@ export async function importAllData(jsonStr: string): Promise<void> {
       await db.runAsync(
         `INSERT INTO expenses
           (id, name, category, amount, type, installments_total, installments_current,
-           start_date, end_date, year, month, is_active, parent_id, notes, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           start_date, end_date, year, month, is_active, parent_id, notes, created_at,
+           due_day, alert_enabled, is_paid, notification_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           e.id, e.name, e.category, e.amount, e.type,
           e.installments_total, e.installments_current, e.start_date,
           e.end_date ?? null, e.year, e.month, e.is_active,
           e.parent_id ?? null, e.notes ?? null, e.created_at ?? null,
+          e.due_day ?? null, e.alert_enabled ?? 0, e.is_paid ?? 0, e.notification_id ?? null,
         ]
       );
     }

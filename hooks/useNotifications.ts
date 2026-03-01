@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { LoanPerson } from '../types';
-import { updateNotificationId, getAllLoanPersons } from '../database/database';
+import { Expense, LoanPerson } from '../types';
+import { updateNotificationId, updateExpenseNotificationId, getAllLoanPersons } from '../database/database';
 import { calculateLoanInstallment } from '../utils/calculations';
 import { formatCurrency } from '../utils/formatting';
 
@@ -146,6 +146,52 @@ export async function scheduleAllPaymentNotifications(): Promise<void> {
     if (person.installments_paid < person.installments) {
       await schedulePaymentNotification(person);
     }
+  }
+}
+
+/**
+ * Agenda uma notificação 1 dia antes do due_day da despesa, às 15h.
+ * Armazena o notification_id na linha da despesa.
+ */
+export async function scheduleExpenseDueAlert(
+  expense: Expense,
+  year: number,
+  month: number
+): Promise<string | null> {
+  if (!expense.due_day) return null;
+  try {
+    const granted = await requestNotificationPermissions();
+    if (!granted) return null;
+
+    // Cancela notificação anterior desta despesa, se existir
+    if (expense.notification_id) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(expense.notification_id);
+      } catch { /* ignorar */ }
+    }
+
+    // Dispara 1 dia antes do vencimento às 15:00
+    const alertDate = new Date(year, month - 1, expense.due_day - 1, 15, 0, 0);
+    if (alertDate <= new Date()) return null; // já passou
+
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `💸 Vence amanhã: ${expense.name}`,
+        body: `A despesa "${expense.name}" de ${formatCurrency(expense.amount)} vence amanhã, dia ${expense.due_day}.`,
+        sound: true,
+        data: { expenseId: expense.id, type: 'EXPENSE_DUE' },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: alertDate,
+      },
+    });
+
+    await updateExpenseNotificationId(expense.id, id);
+    return id;
+  } catch (error) {
+    console.error('Failed to schedule expense alert:', error);
+    return null;
   }
 }
 

@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Switch,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
@@ -18,7 +19,9 @@ import { ExpenseCategory, ExpenseType } from '../types';
 import {
   addFixedExpense,
   addInstallmentExpense,
+  updateExpenseNotificationId,
 } from '../database/database';
+import { scheduleExpenseDueAlert } from '../hooks/useNotifications';
 import { getTodayString } from '../utils/formatting';
 
 interface AddDebtModalProps {
@@ -41,6 +44,8 @@ export default function AddDebtModal({
   const [category, setCategory] = useState<ExpenseCategory>('OTHER');
   const [type, setType] = useState<ExpenseType>('FIXED');
   const [installments, setInstallments] = useState('1');
+  const [dueDay, setDueDay] = useState('');
+  const [alertEnabled, setAlertEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const resetForm = () => {
@@ -49,6 +54,8 @@ export default function AddDebtModal({
     setCategory('OTHER');
     setType('FIXED');
     setInstallments('1');
+    setDueDay('');
+    setAlertEnabled(false);
   };
 
   const handleSave = async () => {
@@ -59,6 +66,15 @@ export default function AddDebtModal({
     const amountNum = parseFloat(amount.replace(',', '.'));
     if (isNaN(amountNum) || amountNum <= 0) {
       Alert.alert('Atenção', 'Digite um valor válido.');
+      return;
+    }
+    const dueDayNum = dueDay ? parseInt(dueDay, 10) : undefined;
+    if (dueDay && (isNaN(dueDayNum!) || dueDayNum! < 1 || dueDayNum! > 31)) {
+      Alert.alert('Atenção', 'Dia de vencimento deve ser entre 1 e 31.');
+      return;
+    }
+    if (alertEnabled && !dueDayNum) {
+      Alert.alert('Atenção', 'Informe o dia de vencimento para ativar o alerta.');
       return;
     }
 
@@ -73,13 +89,33 @@ export default function AddDebtModal({
         installments_current: 1,
         start_date: getTodayString(),
         is_active: 1 as const,
+        due_day: dueDayNum,
+        alert_enabled: alertEnabled && dueDayNum ? 1 : 0,
+        is_paid: 0,
       };
+
+      let insertedId: number | undefined;
 
       if (type === 'FIXED') {
         await addFixedExpense(baseExpense, year, month);
       } else {
         await addInstallmentExpense(baseExpense, year, month);
       }
+
+      // Se alertas habilitados, agenda notificação para a despesa recém criada
+      if (alertEnabled && dueDayNum) {
+        const draftExpense = {
+          id: -1, // será encontrado pelo efeito de reload
+          ...baseExpense,
+          year,
+          month,
+          due_day: dueDayNum,
+          alert_enabled: 1,
+        };
+        // Agenda e ignora erro (permissão pode ter sido negada)
+        await scheduleExpenseDueAlert(draftExpense, year, month);
+      }
+
       resetForm();
       onAdded();
       onClose();
@@ -97,10 +133,8 @@ export default function AddDebtModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.sheet}>
-          {/* Handle */}
           <View style={styles.handle} />
 
-          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Nova Despesa</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -161,7 +195,7 @@ export default function AddDebtModal({
               </TouchableOpacity>
             </View>
 
-            {/* Installments (only if INSTALLMENT) */}
+            {/* Installments */}
             {type === 'INSTALLMENT' && (
               <>
                 <Text style={styles.label}>Número de Parcelas</Text>
@@ -175,6 +209,51 @@ export default function AddDebtModal({
                 />
               </>
             )}
+
+            {/* Due Day + Alert */}
+            <View style={styles.dueDateRow}>
+              <View style={styles.dueDateField}>
+                <Text style={styles.label}>Dia de Vencimento</Text>
+                <View style={styles.dueDateInput}>
+                  <MaterialCommunityIcons
+                    name="calendar-clock"
+                    size={18}
+                    color={dueDay ? COLORS.highlight : COLORS.textLight}
+                  />
+                  <TextInput
+                    style={styles.dueDateTextInput}
+                    placeholder="1–31  (opcional)"
+                    placeholderTextColor={COLORS.textLight}
+                    value={dueDay}
+                    onChangeText={(v) => setDueDay(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.alertField}>
+                <Text style={styles.label}>Alerta 1 dia antes</Text>
+                <View style={styles.alertRow}>
+                  <MaterialCommunityIcons
+                    name={alertEnabled ? 'bell-ring' : 'bell-off-outline'}
+                    size={20}
+                    color={alertEnabled ? COLORS.highlight : COLORS.textLight}
+                  />
+                  <Switch
+                    value={alertEnabled}
+                    onValueChange={setAlertEnabled}
+                    trackColor={{ false: COLORS.border, true: `${COLORS.highlight}60` }}
+                    thumbColor={alertEnabled ? COLORS.highlight : COLORS.textLight}
+                  />
+                </View>
+                {alertEnabled && (
+                  <Text style={styles.alertHint}>
+                    Avisa às 15h do dia anterior ao vencimento
+                  </Text>
+                )}
+              </View>
+            </View>
 
             {/* Category */}
             <Text style={styles.label}>Categoria</Text>
@@ -256,9 +335,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
   },
-  closeBtn: {
-    padding: 4,
-  },
+  closeBtn: { padding: 4 },
   label: {
     fontSize: 13,
     fontWeight: '600',
@@ -305,6 +382,52 @@ const styles = StyleSheet.create({
   typeBtnTextActive: {
     color: COLORS.highlight,
     fontWeight: '700',
+  },
+  // Due date row
+  dueDateRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  dueDateField: {
+    flex: 1,
+  },
+  dueDateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  dueDateTextInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text,
+    padding: 0,
+  },
+  alertField: {
+    flex: 1,
+  },
+  alertRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  alertHint: {
+    fontSize: 11,
+    color: COLORS.highlight,
+    marginTop: 4,
+    lineHeight: 15,
   },
   categoryGrid: {
     flexDirection: 'row',

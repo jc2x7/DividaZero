@@ -27,6 +27,10 @@ export interface Expense {
   is_active: number;
   parent_id?: number;
   notes?: string;
+  due_day?: number;        // dia do mês de vencimento (1-31)
+  alert_enabled?: number;  // 1 = alerta 1 dia antes às 15h ativado
+  is_paid?: number;        // 1 = pago, 0 = pendente
+  notification_id?: string;
 }
 
 export interface Salary {
@@ -117,4 +121,6 @@ export interface MonthSummary {
   balance: number;
   expenses: Expense[];
   categoryBreakdown: { category: ExpenseCategory; total: number }[];
+  paidTotal: number;
+  unpaidTotal: number;
 }

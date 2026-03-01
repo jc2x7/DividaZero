@@ -30,16 +30,16 @@ export function useMonthData(year: number, month: number) {
     load();
   }, [load]);
 
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const paidTotal = expenses.filter((e) => e.is_paid === 1).reduce((sum, e) => sum + e.amount, 0);
+
   const summary: MonthSummary = {
     year,
     month,
     salary: salary?.amount ?? 0,
     otherIncome: salary?.other_income ?? 0,
-    totalExpenses: expenses.reduce((sum, e) => sum + e.amount, 0),
-    balance:
-      (salary?.amount ?? 0) +
-      (salary?.other_income ?? 0) -
-      expenses.reduce((sum, e) => sum + e.amount, 0),
+    totalExpenses,
+    balance: (salary?.amount ?? 0) + (salary?.other_income ?? 0) - totalExpenses,
     expenses,
     categoryBreakdown: CATEGORIES.map((cat) => ({
       category: cat.value as ExpenseCategory,
@@ -47,6 +47,8 @@ export function useMonthData(year: number, month: number) {
         .filter((e) => e.category === cat.value)
         .reduce((sum, e) => sum + e.amount, 0),
     })).filter((c) => c.total > 0),
+    paidTotal,
+    unpaidTotal: totalExpenses - paidTotal,
   };
 
   return { expenses, salary, summary, loading, reload: load };

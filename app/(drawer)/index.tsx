@@ -22,6 +22,7 @@ import DebtCard from '../../components/DebtCard';
 import AddDebtModal from '../../components/AddDebtModal';
 import MonthYearPicker from '../../components/MonthYearPicker';
 import SummaryCard from '../../components/SummaryCard';
+import DonutChart from '../../components/DonutChart';
 import { formatCurrency, getMonthName } from '../../utils/formatting';
 import { upsertSalary } from '../../database/database';
 import { ExpenseCategory } from '../../types';
@@ -113,38 +114,59 @@ export default function DashboardScreen() {
           balance={summary.balance}
         />
 
-        {/* Category Breakdown (pie-like bar) */}
+        {/* ── Donut: Pagas vs Pendentes ── */}
+        {expenses.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Status das Despesas</Text>
+            <View style={styles.donutCard}>
+              <DonutChart
+                size={150}
+                strokeWidth={28}
+                data={[
+                  {
+                    value: summary.paidTotal,
+                    color: COLORS.success,
+                    label: 'Pagas',
+                    sublabel: formatCurrency(summary.paidTotal),
+                  },
+                  {
+                    value: summary.unpaidTotal,
+                    color: COLORS.error,
+                    label: 'Pendentes',
+                    sublabel: formatCurrency(summary.unpaidTotal),
+                  },
+                ]}
+                centerLabel={
+                  summary.totalExpenses > 0
+                    ? `${Math.round((summary.paidTotal / summary.totalExpenses) * 100)}%`
+                    : '0%'
+                }
+                centerSub="pago"
+              />
+            </View>
+          </View>
+        )}
+
+        {/* ── Donut: Por Categoria ── */}
         {summary.categoryBreakdown.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Distribuição por Categoria</Text>
-            <View style={styles.barContainer}>
-              {summary.categoryBreakdown.map((cat) => {
-                const cfg = getCategoryConfig(cat.category);
-                const pct = summary.totalExpenses > 0
-                  ? (cat.total / summary.totalExpenses) * 100
-                  : 0;
-                return (
-                  <View
-                    key={cat.category}
-                    style={[styles.barSegment, { flex: pct, backgroundColor: cfg.color }]}
-                  />
-                );
-              })}
-            </View>
-            <View style={styles.legendRow}>
-              {summary.categoryBreakdown.slice(0, 5).map((cat) => {
-                const cfg = getCategoryConfig(cat.category);
-                const pct = summary.totalExpenses > 0
-                  ? ((cat.total / summary.totalExpenses) * 100).toFixed(1)
-                  : '0';
-                return (
-                  <View key={cat.category} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: cfg.color }]} />
-                    <Text style={styles.legendText}>{cfg.label}</Text>
-                    <Text style={styles.legendPct}>{pct}%</Text>
-                  </View>
-                );
-              })}
+            <View style={styles.donutCard}>
+              <DonutChart
+                size={150}
+                strokeWidth={28}
+                data={summary.categoryBreakdown.map((cat) => {
+                  const cfg = getCategoryConfig(cat.category);
+                  return {
+                    value: cat.total,
+                    color: cfg.color,
+                    label: cfg.label,
+                    sublabel: formatCurrency(cat.total),
+                  };
+                })}
+                centerLabel={formatCurrency(summary.totalExpenses)}
+                centerSub="total"
+              />
             </View>
           </View>
         )}
@@ -211,6 +233,7 @@ export default function DashboardScreen() {
                 key={expense.id}
                 expense={expense}
                 onDeleted={reload}
+                onTogglePaid={reload}
               />
             ))
           )}
@@ -355,40 +378,16 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 12,
   },
-  barContainer: {
-    flexDirection: 'row',
-    height: 10,
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginBottom: 12,
-    backgroundColor: COLORS.border,
-  },
-  barSegment: {
-    height: '100%',
-  },
-  legendRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  legendItem: {
-    flexDirection: 'row',
+  donutCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    gap: 4,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-  },
-  legendPct: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.text,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   filterRow: {
     gap: 8,
