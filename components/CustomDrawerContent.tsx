@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  Image,
 } from 'react-native';
 import {
   DrawerContentScrollView,
@@ -76,10 +76,11 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <MaterialCommunityIcons name="cash-remove" size={40} color={COLORS.highlight} />
-        </View>
-        <Text style={styles.appName}>Divida Zero</Text>
+        <Image
+          source={require('../assets/Logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.appSubtitle}>Controle Financeiro Completo</Text>
       </View>
 
@@ -137,25 +138,14 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingTop: 30,
+    paddingBottom: 20,
     paddingHorizontal: 20,
   },
-  logoContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(233, 69, 96, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(233, 69, 96, 0.3)',
-  },
-  appName: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: COLORS.drawerText,
-    letterSpacing: 1,
+  logo: {
+    width: 180,
+    height: 80,
+    marginBottom: 6,
   },
   appSubtitle: {
     fontSize: 12,
