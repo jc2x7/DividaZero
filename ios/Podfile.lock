@@ -72,6 +72,8 @@ PODS:
     - Yoga
   - ExpoSQLite (16.0.10):
     - ExpoModulesCore
+  - ExpoSystemUI (6.0.9):
+    - ExpoModulesCore
   - EXTaskManager (14.0.9):
     - ExpoModulesCore
     - UMAppLoader
@@ -2105,6 +2107,7 @@ DEPENDENCIES:
   - ExpoLocalAuthentication (from `../node_modules/expo-local-authentication/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSQLite (from `../node_modules/expo-sqlite/ios`)
+  - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
   - EXTaskManager (from `../node_modules/expo-task-manager/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -2214,6 +2217,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-modules-core"
   ExpoSQLite:
     :path: "../node_modules/expo-sqlite/ios"
+  ExpoSystemUI:
+    :path: "../node_modules/expo-system-ui/ios"
   EXTaskManager:
     :path: "../node_modules/expo-task-manager/ios"
   FBLazyVector:
@@ -2387,6 +2392,7 @@ SPEC CHECKSUMS:
   ExpoLocalAuthentication: a5d1c60718a852faa1852ef76298d8a167dc99f5
   ExpoModulesCore: 77496909fd3c800f97f7f2007dd26aeac4bb3798
   ExpoSQLite: 087db2057a7f1e9da38a8126f4388a324f9a4522
+  ExpoSystemUI: 4611247a411f231229f7e04449856035bd18ba21
   EXTaskManager: cdd7aa16ffc6b4b68e065ffb3795f26ad4fa6695
   FBLazyVector: e95a291ad2dadb88e42b06e0c5fb8262de53ec12
   hermes-engine: 9f4dfe93326146a1c99eb535b1cb0b857a3cd172
