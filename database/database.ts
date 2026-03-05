@@ -271,6 +271,23 @@ export async function updateExpenseAmount(
   await db.runAsync('UPDATE expenses SET amount = ? WHERE id = ?', [amount, id]);
 }
 
+export async function updateExpense(
+  id: number,
+  updates: {
+    name: string;
+    amount: number;
+    category: string;
+    due_day?: number;
+    alert_enabled: number;
+  }
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `UPDATE expenses SET name = ?, amount = ?, category = ?, due_day = ?, alert_enabled = ? WHERE id = ?`,
+    [updates.name, updates.amount, updates.category, updates.due_day ?? null, updates.alert_enabled, id]
+  );
+}
+
 export async function deleteExpense(id: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('UPDATE expenses SET is_active = 0 WHERE id = ?', [id]);

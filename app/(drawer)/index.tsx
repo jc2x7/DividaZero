@@ -32,6 +32,7 @@ export default function DashboardScreen() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [showAddDebt, setShowAddDebt] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<import('../../types').Expense | undefined>(undefined);
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [salaryInput, setSalaryInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
@@ -191,6 +192,10 @@ export default function DashboardScreen() {
                 expense={expense}
                 onDeleted={reload}
                 onTogglePaid={reload}
+                onEdit={(exp) => {
+                  setEditingExpense(exp);
+                  setShowAddDebt(true);
+                }}
               />
             ))
           )}
@@ -200,18 +205,19 @@ export default function DashboardScreen() {
       {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => setShowAddDebt(true)}
+        onPress={() => { setEditingExpense(undefined); setShowAddDebt(true); }}
       >
         <MaterialCommunityIcons name="plus" size={28} color="#fff" />
       </TouchableOpacity>
 
-      {/* Add Debt Modal */}
+      {/* Add/Edit Debt Modal */}
       <AddDebtModal
         visible={showAddDebt}
-        onClose={() => setShowAddDebt(false)}
+        onClose={() => { setShowAddDebt(false); setEditingExpense(undefined); }}
         onAdded={reload}
         year={year}
         month={month}
+        editingExpense={editingExpense}
       />
 
       {/* ── Charts Modal ── */}
