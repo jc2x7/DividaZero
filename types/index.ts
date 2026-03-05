@@ -32,6 +32,7 @@ export interface Expense {
   alert_enabled?: number;  // 1 = alerta 1 dia antes às 15h ativado
   is_paid?: number;        // 1 = pago, 0 = pendente
   notification_id?: string;
+  is_income?: number;      // 1 = entrada de dinheiro, 0 = despesa
 }
 
 export interface Salary {
