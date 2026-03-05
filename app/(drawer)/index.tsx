@@ -20,6 +20,8 @@ import { CATEGORIES, getCategoryConfig } from '../../constants/categories';
 import { useMonthData } from '../../hooks/useMonthData';
 import DebtCard from '../../components/DebtCard';
 import AddDebtModal from '../../components/AddDebtModal';
+import AddIncomeModal from '../../components/AddIncomeModal';
+import IncomeCard from '../../components/IncomeCard';
 import MonthYearPicker from '../../components/MonthYearPicker';
 import SummaryCard from '../../components/SummaryCard';
 import DonutChart from '../../components/DonutChart';
@@ -34,13 +36,14 @@ export default function DashboardScreen() {
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [editingExpense, setEditingExpense] = useState<import('../../types').Expense | undefined>(undefined);
   const [showFabMenu, setShowFabMenu] = useState(false);
+  const [showAddIncome, setShowAddIncome] = useState(false);
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [salaryInput, setSalaryInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'ALL'>('ALL');
   const [showCharts, setShowCharts] = useState(false);
 
-  const { expenses, salary, summary, loading, reload } = useMonthData(year, month);
+  const { expenses, incomes, salary, summary, loading, reload } = useMonthData(year, month);
 
   useFocusEffect(
     useCallback(() => {
@@ -112,10 +115,25 @@ export default function DashboardScreen() {
 
         {/* Summary */}
         <SummaryCard
-          income={(salary?.amount ?? 0) + (salary?.other_income ?? 0)}
+          income={summary.salary + summary.otherIncome}
           expenses={summary.totalExpenses}
           balance={summary.balance}
         />
+
+        {/* Entradas extras do mês */}
+        {incomes.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.infoBtnPlaceholder} />
+              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>
+                Entradas de {getMonthName(month)}/{year}
+              </Text>
+            </View>
+            {incomes.map((inc) => (
+              <IncomeCard key={inc.id} income={inc} onDeleted={reload} />
+            ))}
+          </View>
+        )}
 
         {/* Category Filter */}
         <View style={styles.section}>
@@ -217,7 +235,7 @@ export default function DashboardScreen() {
             style={styles.fabMenuItem}
             onPress={() => {
               setShowFabMenu(false);
-              handleOpenSalaryModal();
+              setShowAddIncome(true);
             }}
           >
             <View style={styles.fabMenuLabel}>
@@ -260,6 +278,15 @@ export default function DashboardScreen() {
         year={year}
         month={month}
         editingExpense={editingExpense}
+      />
+
+      {/* Add Income Modal */}
+      <AddIncomeModal
+        visible={showAddIncome}
+        onClose={() => setShowAddIncome(false)}
+        onAdded={reload}
+        year={year}
+        month={month}
       />
 
       {/* ── Charts Modal ── */}

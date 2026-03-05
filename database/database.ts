@@ -72,6 +72,7 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
     'ALTER TABLE expenses ADD COLUMN alert_enabled INTEGER DEFAULT 0',
     'ALTER TABLE expenses ADD COLUMN is_paid INTEGER DEFAULT 0',
     'ALTER TABLE expenses ADD COLUMN notification_id TEXT',
+    'ALTER TABLE expenses ADD COLUMN is_income INTEGER DEFAULT 0',
   ];
   for (const sql of migrations) {
     try {
@@ -146,8 +147,8 @@ export async function addExpense(
     `INSERT INTO expenses
       (name, category, amount, type, installments_total, installments_current,
        start_date, end_date, year, month, is_active, parent_id, notes,
-       due_day, alert_enabled, is_paid, notification_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       due_day, alert_enabled, is_paid, notification_id, is_income)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       expense.name,
       expense.category,
@@ -166,6 +167,7 @@ export async function addExpense(
       expense.alert_enabled ?? 0,
       expense.is_paid ?? 0,
       expense.notification_id ?? null,
+      expense.is_income ?? 0,
     ]
   );
   return result.lastInsertRowId;
@@ -257,10 +259,69 @@ export async function getExpensesForMonth(
   const db = await getDatabase();
   return db.getAllAsync<Expense>(
     `SELECT * FROM expenses
-     WHERE year = ? AND month = ? AND is_active = 1
+     WHERE year = ? AND month = ? AND is_active = 1 AND (is_income = 0 OR is_income IS NULL)
      ORDER BY category, name`,
     [year, month]
   );
+}
+
+export async function getIncomesForMonth(
+  year: number,
+  month: number
+): Promise<Expense[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<Expense>(
+    `SELECT * FROM expenses
+     WHERE year = ? AND month = ? AND is_active = 1 AND is_income = 1
+     ORDER BY name`,
+    [year, month]
+  );
+}
+
+/**
+ * Adiciona uma entrada de dinheiro única (apenas para o mês especificado)
+ */
+export async function addSingleIncome(
+  income: Omit<Expense, 'id' | 'year' | 'month'>,
+  year: number,
+  month: number
+): Promise<void> {
+  await addExpense({
+    ...income,
+    year,
+    month,
+    type: 'FIXED',
+    installments_total: 1,
+    installments_current: 1,
+    is_active: 1,
+    is_income: 1,
+  });
+}
+
+/**
+ * Adiciona uma entrada de dinheiro parcelada (spread across N months)
+ */
+export async function addInstallmentIncome(
+  income: Omit<Expense, 'id' | 'year' | 'month' | 'installments_current'>,
+  startYear: number,
+  startMonth: number
+): Promise<void> {
+  const total = income.installments_total;
+  const startIdx = startYear * 12 + startMonth - 1;
+  for (let k = 0; k < total; k++) {
+    const totalIdx = startIdx + k;
+    const y = Math.floor(totalIdx / 12);
+    const m = (totalIdx % 12) + 1;
+    await addExpense({
+      ...income,
+      year: y,
+      month: m,
+      installments_current: k + 1,
+      type: 'INSTALLMENT',
+      is_active: 1,
+      is_income: 1,
+    });
+  }
 }
 
 export async function updateExpenseAmount(
@@ -453,14 +514,15 @@ export async function importAllData(jsonStr: string): Promise<void> {
         `INSERT INTO expenses
           (id, name, category, amount, type, installments_total, installments_current,
            start_date, end_date, year, month, is_active, parent_id, notes, created_at,
-           due_day, alert_enabled, is_paid, notification_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           due_day, alert_enabled, is_paid, notification_id, is_income)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           e.id, e.name, e.category, e.amount, e.type,
           e.installments_total, e.installments_current, e.start_date,
           e.end_date ?? null, e.year, e.month, e.is_active,
           e.parent_id ?? null, e.notes ?? null, e.created_at ?? null,
           e.due_day ?? null, e.alert_enabled ?? 0, e.is_paid ?? 0, e.notification_id ?? null,
+          e.is_income ?? 0,
         ]
       );
     }
