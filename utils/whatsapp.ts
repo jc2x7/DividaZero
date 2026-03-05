@@ -2,14 +2,14 @@ import { Linking, Alert } from 'react-native';
 import { formatCurrency } from './formatting';
 
 /**
- * Build a WhatsApp deep link URL
+ * Build a WhatsApp web link URL (wa.me) — funciona sem precisar do app instalado
  */
 export function buildWhatsAppUrl(phone: string, message: string): string {
   const digits = phone.replace(/\D/g, '');
   // Ensure Brazilian country code
   const fullPhone = digits.startsWith('55') ? digits : `55${digits}`;
   const encoded = encodeURIComponent(message);
-  return `whatsapp://send?phone=${fullPhone}&text=${encoded}`;
+  return `https://wa.me/${fullPhone}?text=${encoded}`;
 }
 
 /**
@@ -53,20 +53,9 @@ export async function openWhatsAppCollection(
   const url = buildWhatsAppUrl(phone, message);
 
   try {
-    const canOpen = await Linking.canOpenURL(url);
-    if (canOpen) {
-      await Linking.openURL(url);
-    } else {
-      // Fallback to web.whatsapp.com
-      const digits = phone.replace(/\D/g, '');
-      const fullPhone = digits.startsWith('55') ? digits : `55${digits}`;
-      const webUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
-      await Linking.openURL(webUrl);
-    }
+    // Abre diretamente o link wa.me no navegador (funciona com ou sem WhatsApp instalado)
+    await Linking.openURL(url);
   } catch {
-    Alert.alert(
-      'Erro',
-      'Não foi possível abrir o WhatsApp. Verifique se o aplicativo está instalado.'
-    );
+    Alert.alert('Erro', 'Não foi possível abrir o link do WhatsApp.');
   }
 }
