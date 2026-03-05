@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { COLORS } from '../../constants/colors';
 import { exportAllData, importAllData } from '../../database/database';
 
@@ -65,10 +67,38 @@ function ImportModal({
   loading: boolean;
 }) {
   const [text, setText] = useState('');
+  const [picking, setPicking] = useState(false);
 
   const handleClose = () => {
     setText('');
     onClose();
+  };
+
+  const handlePickFile = async () => {
+    setPicking(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/json', 'text/plain', '*/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      if (!asset?.uri) {
+        Alert.alert('Erro', 'Não foi possível acessar o arquivo.');
+        return;
+      }
+
+      const content = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      setText(content);
+    } catch (e) {
+      Alert.alert('Erro', 'Não foi possível ler o arquivo selecionado.');
+    } finally {
+      setPicking(false);
+    }
   };
 
   return (
@@ -83,8 +113,30 @@ function ImportModal({
           </View>
 
           <Text style={modal.hint}>
-            Cole abaixo o conteúdo do arquivo de backup (.json) que você salvou anteriormente:
+            Selecione o arquivo de backup (.txt ou .json) ou cole o conteúdo abaixo:
           </Text>
+
+          {/* Botão de selecionar arquivo */}
+          <TouchableOpacity
+            style={[modal.fileBtn, picking && { opacity: 0.6 }]}
+            onPress={handlePickFile}
+            disabled={picking}
+          >
+            {picking ? (
+              <ActivityIndicator color={COLORS.highlight} size="small" />
+            ) : (
+              <MaterialCommunityIcons name="file-search-outline" size={20} color={COLORS.highlight} />
+            )}
+            <Text style={modal.fileBtnText}>
+              {picking ? 'Abrindo...' : 'Procurar arquivo no celular'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={modal.dividerRow}>
+            <View style={modal.dividerLine} />
+            <Text style={modal.dividerText}>ou cole o texto</Text>
+            <View style={modal.dividerLine} />
+          </View>
 
           <TextInput
             style={modal.input}
@@ -448,6 +500,39 @@ const modal = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 12,
     lineHeight: 19,
+  },
+  fileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.highlight,
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: `${COLORS.highlight}0D`,
+  },
+  fileBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.highlight,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    fontWeight: '500',
   },
   input: {
     backgroundColor: COLORS.background,

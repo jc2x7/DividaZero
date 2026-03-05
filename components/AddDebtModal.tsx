@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,10 +15,11 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import { CATEGORIES } from '../constants/categories';
-import { ExpenseCategory, ExpenseType } from '../types';
+import { Expense, ExpenseCategory, ExpenseType } from '../types';
 import {
   addFixedExpense,
   addInstallmentExpense,
+  updateExpense,
   updateExpenseNotificationId,
 } from '../database/database';
 import { scheduleExpenseDueAlert } from '../hooks/useNotifications';
@@ -30,6 +31,7 @@ interface AddDebtModalProps {
   onAdded: () => void;
   year: number;
   month: number;
+  editingExpense?: Expense;
 }
 
 export default function AddDebtModal({
@@ -38,7 +40,10 @@ export default function AddDebtModal({
   onAdded,
   year,
   month,
+  editingExpense,
 }: AddDebtModalProps) {
+  const isEditing = !!editingExpense;
+
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('OTHER');
@@ -47,6 +52,21 @@ export default function AddDebtModal({
   const [dueDay, setDueDay] = useState('');
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Preenche o formulário quando abre em modo de edição
+  useEffect(() => {
+    if (editingExpense) {
+      setName(editingExpense.name);
+      setAmount(String(editingExpense.amount));
+      setCategory(editingExpense.category);
+      setType(editingExpense.type);
+      setInstallments(String(editingExpense.installments_total ?? 1));
+      setDueDay(editingExpense.due_day ? String(editingExpense.due_day) : '');
+      setAlertEnabled(!!editingExpense.alert_enabled);
+    } else {
+      resetForm();
+    }
+  }, [editingExpense, visible]);
 
   const resetForm = () => {
     setName('');
@@ -80,40 +100,48 @@ export default function AddDebtModal({
 
     setSaving(true);
     try {
-      const baseExpense = {
-        name: name.trim(),
-        category,
-        amount: amountNum,
-        type,
-        installments_total: type === 'INSTALLMENT' ? parseInt(installments, 10) || 1 : 1,
-        installments_current: 1,
-        start_date: getTodayString(),
-        is_active: 1 as const,
-        due_day: dueDayNum,
-        alert_enabled: alertEnabled && dueDayNum ? 1 : 0,
-        is_paid: 0,
-      };
-
-      let insertedId: number | undefined;
-
-      if (type === 'FIXED') {
-        await addFixedExpense(baseExpense, year, month);
-      } else {
-        await addInstallmentExpense(baseExpense, year, month);
-      }
-
-      // Se alertas habilitados, agenda notificação para a despesa recém criada
-      if (alertEnabled && dueDayNum) {
-        const draftExpense = {
-          id: -1, // será encontrado pelo efeito de reload
-          ...baseExpense,
-          year,
-          month,
+      if (isEditing && editingExpense) {
+        // Modo edição: atualiza apenas este registro
+        await updateExpense(editingExpense.id, {
+          name: name.trim(),
+          amount: amountNum,
+          category,
           due_day: dueDayNum,
-          alert_enabled: 1,
+          alert_enabled: alertEnabled && dueDayNum ? 1 : 0,
+        });
+      } else {
+        // Modo adição
+        const baseExpense = {
+          name: name.trim(),
+          category,
+          amount: amountNum,
+          type,
+          installments_total: type === 'INSTALLMENT' ? parseInt(installments, 10) || 1 : 1,
+          installments_current: 1,
+          start_date: getTodayString(),
+          is_active: 1 as const,
+          due_day: dueDayNum,
+          alert_enabled: alertEnabled && dueDayNum ? 1 : 0,
+          is_paid: 0,
         };
-        // Agenda e ignora erro (permissão pode ter sido negada)
-        await scheduleExpenseDueAlert(draftExpense, year, month);
+
+        if (type === 'FIXED') {
+          await addFixedExpense(baseExpense, year, month);
+        } else {
+          await addInstallmentExpense(baseExpense, year, month);
+        }
+
+        if (alertEnabled && dueDayNum) {
+          const draftExpense = {
+            id: -1,
+            ...baseExpense,
+            year,
+            month,
+            due_day: dueDayNum,
+            alert_enabled: 1,
+          };
+          await scheduleExpenseDueAlert(draftExpense, year, month);
+        }
       }
 
       resetForm();
@@ -136,7 +164,7 @@ export default function AddDebtModal({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>Nova Despesa</Text>
+            <Text style={styles.title}>{isEditing ? 'Editar Despesa' : 'Nova Despesa'}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
             </TouchableOpacity>
@@ -164,39 +192,43 @@ export default function AddDebtModal({
               keyboardType="decimal-pad"
             />
 
-            {/* Type */}
-            <Text style={styles.label}>Tipo</Text>
-            <View style={styles.typeRow}>
-              <TouchableOpacity
-                style={[styles.typeBtn, type === 'FIXED' && styles.typeBtnActive]}
-                onPress={() => setType('FIXED')}
-              >
-                <MaterialCommunityIcons
-                  name="repeat"
-                  size={18}
-                  color={type === 'FIXED' ? COLORS.highlight : COLORS.textSecondary}
-                />
-                <Text style={[styles.typeBtnText, type === 'FIXED' && styles.typeBtnTextActive]}>
-                  Fixo (recorrente)
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeBtn, type === 'INSTALLMENT' && styles.typeBtnActive]}
-                onPress={() => setType('INSTALLMENT')}
-              >
-                <MaterialCommunityIcons
-                  name="credit-card-multiple"
-                  size={18}
-                  color={type === 'INSTALLMENT' ? COLORS.highlight : COLORS.textSecondary}
-                />
-                <Text style={[styles.typeBtnText, type === 'INSTALLMENT' && styles.typeBtnTextActive]}>
-                  Parcelado
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {/* Type — somente na criação */}
+            {!isEditing && (
+              <>
+                <Text style={styles.label}>Tipo</Text>
+                <View style={styles.typeRow}>
+                  <TouchableOpacity
+                    style={[styles.typeBtn, type === 'FIXED' && styles.typeBtnActive]}
+                    onPress={() => setType('FIXED')}
+                  >
+                    <MaterialCommunityIcons
+                      name="repeat"
+                      size={18}
+                      color={type === 'FIXED' ? COLORS.highlight : COLORS.textSecondary}
+                    />
+                    <Text style={[styles.typeBtnText, type === 'FIXED' && styles.typeBtnTextActive]}>
+                      Fixo (recorrente)
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.typeBtn, type === 'INSTALLMENT' && styles.typeBtnActive]}
+                    onPress={() => setType('INSTALLMENT')}
+                  >
+                    <MaterialCommunityIcons
+                      name="credit-card-multiple"
+                      size={18}
+                      color={type === 'INSTALLMENT' ? COLORS.highlight : COLORS.textSecondary}
+                    />
+                    <Text style={[styles.typeBtnText, type === 'INSTALLMENT' && styles.typeBtnTextActive]}>
+                      Parcelado
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
 
             {/* Installments */}
-            {type === 'INSTALLMENT' && (
+            {!isEditing && type === 'INSTALLMENT' && (
               <>
                 <Text style={styles.label}>Número de Parcelas</Text>
                 <TextInput
@@ -293,7 +325,7 @@ export default function AddDebtModal({
             >
               <MaterialCommunityIcons name="check" size={20} color="#fff" />
               <Text style={styles.saveBtnText}>
-                {saving ? 'Salvando...' : 'Adicionar Despesa'}
+                {saving ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Adicionar Despesa'}
               </Text>
             </TouchableOpacity>
           </ScrollView>
@@ -383,7 +415,6 @@ const styles = StyleSheet.create({
     color: COLORS.highlight,
     fontWeight: '700',
   },
-  // Due date row
   dueDateRow: {
     flexDirection: 'row',
     gap: 12,

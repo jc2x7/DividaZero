@@ -10,6 +10,7 @@ export type ExpenseCategory =
   | 'ENTERTAINMENT'
   | 'TRANSPORT'
   | 'UTILITIES'
+  | 'INVESTMENT'
   | 'OTHER';
 
 export interface Expense {

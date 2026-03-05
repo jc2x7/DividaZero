@@ -17,6 +17,7 @@ export const CATEGORIES: CategoryConfig[] = [
   { value: 'ENTERTAINMENT', label: 'Lazer', icon: 'gamepad-variant', color: '#FD79A8' },
   { value: 'TRANSPORT', label: 'Transporte', icon: 'bus', color: '#FDCB6E' },
   { value: 'UTILITIES', label: 'Contas', icon: 'lightning-bolt', color: '#74B9FF' },
+  { value: 'INVESTMENT', label: 'Investimento', icon: 'trending-up', color: '#00B894' },
   { value: 'OTHER', label: 'Outros', icon: 'dots-horizontal', color: '#B2BEC3' },
 ];
 
