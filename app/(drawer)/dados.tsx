@@ -10,11 +10,12 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import { COLORS } from '../../constants/colors';
 import { exportAllData, importAllData } from '../../database/database';
 
@@ -90,9 +91,9 @@ function ImportModal({
         return;
       }
 
-      const content = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+      // Usa fetch para ler o conteúdo — funciona em iOS e Android
+      const response = await fetch(asset.uri);
+      const content = await response.text();
       setText(content);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível ler o arquivo selecionado.');
@@ -103,7 +104,11 @@ function ImportModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <View style={modal.overlay}>
+      <KeyboardAvoidingView
+        style={modal.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+      >
         <View style={modal.sheet}>
           <View style={modal.header}>
             <Text style={modal.title}>Importar Dados</Text>
@@ -170,7 +175,7 @@ function ImportModal({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

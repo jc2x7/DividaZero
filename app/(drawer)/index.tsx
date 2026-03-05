@@ -33,6 +33,7 @@ export default function DashboardScreen() {
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [editingExpense, setEditingExpense] = useState<import('../../types').Expense | undefined>(undefined);
+  const [showFabMenu, setShowFabMenu] = useState(false);
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [salaryInput, setSalaryInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
@@ -202,12 +203,53 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      {/* FAB */}
+      {/* FAB speed dial */}
+      {showFabMenu && (
+        <TouchableOpacity
+          style={styles.fabBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowFabMenu(false)}
+        />
+      )}
+      {showFabMenu && (
+        <View style={styles.fabMenu}>
+          <TouchableOpacity
+            style={styles.fabMenuItem}
+            onPress={() => {
+              setShowFabMenu(false);
+              handleOpenSalaryModal();
+            }}
+          >
+            <View style={styles.fabMenuLabel}>
+              <Text style={styles.fabMenuLabelText}>Adicionar Entrada</Text>
+            </View>
+            <View style={[styles.fabMenuBtn, { backgroundColor: COLORS.success }]}>
+              <MaterialCommunityIcons name="cash-plus" size={22} color="#fff" />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.fabMenuItem}
+            onPress={() => {
+              setShowFabMenu(false);
+              setEditingExpense(undefined);
+              setShowAddDebt(true);
+            }}
+          >
+            <View style={styles.fabMenuLabel}>
+              <Text style={styles.fabMenuLabelText}>Adicionar Despesa</Text>
+            </View>
+            <View style={[styles.fabMenuBtn, { backgroundColor: COLORS.error }]}>
+              <MaterialCommunityIcons name="receipt-text-plus" size={22} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
       <TouchableOpacity
-        style={styles.fab}
-        onPress={() => { setEditingExpense(undefined); setShowAddDebt(true); }}
+        style={[styles.fab, showFabMenu && styles.fabOpen]}
+        onPress={() => setShowFabMenu((v) => !v)}
       >
-        <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+        <MaterialCommunityIcons name={showFabMenu ? 'close' : 'plus'} size={28} color="#fff" />
       </TouchableOpacity>
 
       {/* Add/Edit Debt Modal */}
@@ -517,6 +559,59 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 8,
+  },
+  fabOpen: {
+    backgroundColor: COLORS.textSecondary,
+  },
+  fabBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    zIndex: 9,
+  },
+  fabMenu: {
+    position: 'absolute',
+    bottom: 96,
+    right: 24,
+    gap: 12,
+    zIndex: 10,
+  },
+  fabMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    justifyContent: 'flex-end',
+  },
+  fabMenuLabel: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  fabMenuLabelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  fabMenuBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
   modalOverlay: {
     flex: 1,
