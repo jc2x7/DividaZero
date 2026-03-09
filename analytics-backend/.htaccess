@@ -7,10 +7,4 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # Desabilitar listagem de diretório
 Options -Indexes
-
-# Bloquear acesso direto ao diretório de dados
-<IfModule mod_authz_core.c>
-  <DirectoryMatch "data">
-    Require all denied
-  </DirectoryMatch>
-</IfModule>
+# Nota: a pasta data/ é protegida pelo próprio data/.htaccess (Deny from all)
