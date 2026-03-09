@@ -103,11 +103,12 @@ if ($fp && flock($fp, LOCK_EX)) {
         // Timestamp: usar o enviado pelo app ou agora
         $ts = (isset($event['ts']) && is_int($event['ts'])) ? (int)$event['ts'] : time();
 
-        // Sanitizar screen: null ou path simples (máx 128 chars, apenas chars de URL)
+        // Sanitizar e normalizar screen: remove prefixo /(drawer) do Expo Router
         $screen = null;
         if (isset($event['screen']) && is_string($event['screen'])) {
-            $sanitized = preg_replace('/[^a-zA-Z0-9\/_\-]/', '', $event['screen']);
-            $screen    = substr($sanitized, 0, 128);
+            $sanitized = preg_replace('/[^a-zA-Z0-9\/_\-\(\)]/', '', $event['screen']);
+            $sanitized = preg_replace('#^/\(drawer\)#', '', $sanitized);
+            $screen    = substr($sanitized ?: '/', 0, 128);
         }
 
         $row = json_encode([

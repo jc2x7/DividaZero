@@ -66,10 +66,26 @@ function count_devices(array $events): int {
     return count(array_unique(array_column($events, 'device_id')));
 }
 
-/** Contagem de screen_views por tela */
+/** Normaliza o caminho da tela (remove prefixo /(drawer) do Expo Router) */
+function normalize_screen(string $screen): string {
+    // Expo Router pode retornar '/(drawer)/simulator' ou '/simulator'
+    $screen = preg_replace('#^\\/\(drawer\)#', '', $screen);
+    return $screen ?: '/';
+}
+
+/** Contagem de screen_views por tela (normalizada), sempre mostrando as 6 telas */
 function screen_counts(array $events): array {
-    $views = array_filter($events, fn($e) => $e['type'] === 'screen_view' && !empty($e['screen']));
-    $counts = array_count_values(array_column(array_values($views), 'screen'));
+    $all_screens = ['/', '/simulator', '/salary-calc', '/labor-laws', '/lending', '/dados'];
+    $counts = array_fill_keys($all_screens, 0);
+
+    foreach ($events as $e) {
+        if ($e['type'] !== 'screen_view' || empty($e['screen'])) continue;
+        $path = normalize_screen($e['screen']);
+        if (array_key_exists($path, $counts)) {
+            $counts[$path]++;
+        }
+    }
+
     arsort($counts);
     return $counts;
 }

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import * as ExpoCrypto from 'expo-crypto';
 import { getSetting, setSetting } from '../database/database';
 
 // ============================================================
@@ -30,17 +31,14 @@ let initialized = false;
 // HELPERS
 // ============================================================
 function genUUID(): string {
-  // crypto.randomUUID() disponível no Hermes desde RN 0.73+
-  return crypto.randomUUID();
+  return ExpoCrypto.randomUUID();
 }
 
 async function sha256(input: string): Promise<string> {
-  // Web Crypto API disponível no Hermes (RN 0.74+) e no browser
-  const data = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  return ExpoCrypto.digestStringAsync(
+    ExpoCrypto.CryptoDigestAlgorithm.SHA256,
+    input
+  );
 }
 
 // ============================================================
