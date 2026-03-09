@@ -5,7 +5,7 @@
 // IMPORTANTE: Nunca commite este arquivo com credenciais reais.
 // Em produção, use variáveis de ambiente ou um arquivo fora do webroot.
 
-define('DASHBOARD_PASSWORD', 'troque-esta-senha-agora');
+define('DASHBOARD_PASSWORD', '290212');
 
 define('DATA_DIR', __DIR__ . '/data/');
 

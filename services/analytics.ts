@@ -5,7 +5,7 @@ import { getSetting, setSetting } from '../database/database';
 // ============================================================
 // CONFIGURAÇÃO — substitua pela URL real do seu VPS
 // ============================================================
-const ENDPOINT = 'https://SEU_DOMINIO/analytics/collect.php';
+const ENDPOINT = 'https://correcaodesolo.com.br/DividaZero/collect.php';
 
 // ============================================================
 // TIPOS
