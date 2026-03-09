@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -8,15 +9,18 @@ import {
   scheduleAllPaymentNotifications,
 } from '../hooks/useNotifications';
 import { getDatabase } from '../database/database';
+import { initAnalytics, trackEvent, refreshSession, flushNow } from '../services/analytics';
 
 export default function RootLayout() {
   const router = useRouter();
 
   useEffect(() => {
-    // Initialize DB and notifications on app start
+    // Initialize DB, analytics and notifications on app start
     const init = async () => {
       try {
         await getDatabase();
+        await initAnalytics();
+        trackEvent('app_open');
         await requestNotificationPermissions();
         await scheduleAllPaymentNotifications();
       } catch (error) {
@@ -33,8 +37,20 @@ export default function RootLayout() {
       }
     });
 
+    // Track app foreground/background transitions
+    const handleAppState = (next: AppStateStatus) => {
+      if (next === 'active') {
+        refreshSession();
+        trackEvent('app_open');
+      } else {
+        flushNow();
+      }
+    };
+    const appStateSub = AppState.addEventListener('change', handleAppState);
+
     return () => {
       subscription.remove();
+      appStateSub.remove();
     };
   }, [router]);
 
