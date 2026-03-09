@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Política de Privacidade — Divida Zero</title>
-  <meta name="description" content="Política de Privacidade do aplicativo Divida Zero. App 100% offline, sem coleta de dados." />
+  <meta name="description" content="Política de Privacidade do aplicativo Divida Zero. Coleta apenas analytics anônimos para melhoria do app, sem nenhum dado pessoal identificável." />
   <style>
     :root {
       --navy: #1A1A2E;
@@ -209,7 +209,7 @@
 
 <div class="highlight-strip">
   <span>🔒</span>
-  <span>Este app é 100% offline — não coletamos, armazenamos nem compartilhamos nenhum dado seu em servidores.</span>
+  <span>Seus dados financeiros ficam 100% no seu dispositivo — coletamos apenas analytics anônimos de uso, sem qualquer dado pessoal identificável.</span>
 </div>
 
 <main>
@@ -234,17 +234,45 @@
   <!-- COLETA DE DADOS -->
   <div class="card">
     <h2><span class="icon">🚫</span> Dados que NÃO coletamos</h2>
-    <p>O Divida Zero foi projetado com privacidade por padrão. O App <strong>não coleta absolutamente nenhum dado pessoal</strong>. Especificamente:</p>
+    <p>O Divida Zero foi projetado com privacidade por padrão. O App <strong>não coleta nenhum dado pessoal identificável</strong>. Especificamente:</p>
     <ul>
       <li>Não coletamos nome, e-mail, telefone ou qualquer dado de identificação pessoal</li>
-      <li>Não coletamos dados financeiros para nossos servidores</li>
+      <li>Não coletamos dados financeiros (valores, despesas, empréstimos) para nossos servidores</li>
       <li>Não rastreamos localização geográfica</li>
       <li>Não acessamos contatos, câmera, microfone ou galeria de fotos</li>
-      <li>Não coletamos dados de uso, comportamento ou analytics</li>
-      <li>Não coletamos informações do dispositivo ou identificadores únicos</li>
+      <li>Não coletamos o ID do aparelho (IDFA, GAID ou similares)</li>
       <li>Não exibimos anúncios e não compartilhamos dados com redes de publicidade</li>
-      <li>Não enviamos dados para servidores de terceiros</li>
+      <li>Não enviamos dados para serviços de terceiros como Firebase, Facebook SDK ou similares</li>
     </ul>
+  </div>
+
+  <!-- ANALYTICS ANÔNIMOS -->
+  <div class="card">
+    <h2><span class="icon">📊</span> Analytics anônimos de uso</h2>
+    <p>
+      Para melhorar o aplicativo, o Divida Zero coleta <strong>dados anônimos de uso</strong>
+      enviados para nossos próprios servidores. Esses dados incluem:
+    </p>
+    <ul>
+      <li>Quais telas do app são visitadas e com que frequência</li>
+      <li>Quantas vezes o app é aberto por dia, semana e mês</li>
+      <li>Um identificador de dispositivo <strong>completamente anônimo</strong></li>
+    </ul>
+    <p style="margin-top:12px">
+      <strong>Como funciona o identificador anônimo:</strong> o App gera um código aleatório (UUID)
+      armazenado localmente no seu dispositivo. Antes de qualquer transmissão, esse código é convertido
+      em um hash criptográfico (SHA-256) — impossível de ser revertido ao original. O hash transmitido
+      não contém nome, e-mail, telefone, número do aparelho ou qualquer informação pessoal.
+    </p>
+    <p>
+      <strong>O que esses dados NÃO incluem:</strong> localização, dados financeiros, contatos,
+      fotos, qualquer PII (informação pessoalmente identificável) ou o ID real do seu aparelho.
+    </p>
+    <p>
+      Os dados coletados são armazenados exclusivamente em servidores próprios, não são vendidos,
+      não são compartilhados com terceiros e são usados somente para entender como o app é utilizado
+      e priorizarmelhorias.
+    </p>
   </div>
 
   <!-- ONDE FICAM OS DADOS -->
@@ -293,8 +321,8 @@
       </tr>
     </table>
     <p style="margin-top:14px">
-      O App <strong>não solicita permissão de internet</strong>, portanto é tecnicamente impossível
-      que qualquer dado seja transmitido pela rede.
+      O App utiliza acesso à internet <strong>exclusivamente</strong> para envio dos analytics
+      anônimos de uso descritos nesta política. Nenhum dado financeiro ou pessoal é transmitido.
     </p>
   </div>
 
@@ -339,9 +367,10 @@
     </p>
     <ul>
       <li>Sem Google Analytics ou Firebase</li>
-      <li>Sem Facebook SDK ou outros SDKs de rastreamento</li>
+      <li>Sem Facebook SDK ou outros SDKs de rastreamento de terceiros</li>
       <li>Sem serviços de crash reporting com dados de usuário</li>
       <li>Sem serviços de publicidade</li>
+      <li>Analytics próprios e anônimos (detalhados na seção "Analytics anônimos de uso")</li>
     </ul>
   </div>
 
@@ -389,15 +418,15 @@
       De acordo com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), você tem direito a:
     </p>
     <ul>
-      <li>Confirmar a existência de tratamento de dados pessoais (resposta: não há tratamento)</li>
-      <li>Acessar seus dados (todos estão no seu próprio dispositivo)</li>
-      <li>Solicitar a exclusão dos dados (basta desinstalar o App)</li>
-      <li>Revogar o consentimento (basta desinstalar o App)</li>
-      <li>Obter informações sobre o compartilhamento de dados (não há compartilhamento)</li>
+      <li>Confirmar a existência de tratamento de dados (resposta: apenas analytics anônimos)</li>
+      <li>Acessar seus dados financeiros (todos estão no seu próprio dispositivo)</li>
+      <li>Solicitar a exclusão dos analytics anônimos — entre em contato pelo e-mail abaixo</li>
+      <li>Obter informações sobre compartilhamento (os analytics não são compartilhados com terceiros)</li>
     </ul>
     <p>
-      Como o App não processa dados pessoais em nossos sistemas, a maioria dos direitos da LGPD
-      é exercida diretamente por você no seu próprio dispositivo.
+      Como os analytics são anônimos e não há forma de vinculá-los a uma pessoa específica,
+      a exclusão individual não é tecnicamente possível em todos os casos. Para solicitar a remoção,
+      entre em contato informando a data aproximada de uso.
     </p>
   </div>
 

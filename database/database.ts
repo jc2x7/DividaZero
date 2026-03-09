@@ -64,6 +64,11 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL
+    );
   `);
 
   // Migrations: add new columns to expenses if they don't exist yet
@@ -470,6 +475,27 @@ export async function deleteLoanPerson(id: number): Promise<void> {
   await db.runAsync(
     'UPDATE loan_persons SET is_active = 0 WHERE id = ?',
     [id]
+  );
+}
+
+// ============================================================
+// SETTINGS OPERATIONS
+// ============================================================
+export async function getSetting(key: string): Promise<string | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM settings WHERE key = ?',
+    [key]
+  );
+  return row?.value ?? null;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [key, value]
   );
 }
 
