@@ -7,7 +7,8 @@ import {
   formatPhone,
 } from '../utils/formatting';
 import { calculateLoanInstallment } from '../utils/calculations';
-import { COLORS } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, alpha } from '../constants/theme';
 
 interface LoanPersonCardProps {
   person: LoanPerson;
@@ -16,6 +17,8 @@ interface LoanPersonCardProps {
 }
 
 export default function LoanPersonCard({ person, onPress, onCharge }: LoanPersonCardProps) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const installmentAmount = calculateLoanInstallment(
     person.total_amount,
     person.monthly_interest,
@@ -40,7 +43,7 @@ export default function LoanPersonCard({ person, onPress, onCharge }: LoanPerson
           <Text style={styles.name} numberOfLines={1}>{person.name}</Text>
           {isFullyPaid && (
             <View style={styles.paidBadge}>
-              <MaterialCommunityIcons name="check-circle" size={12} color={COLORS.success} />
+              <MaterialCommunityIcons name="check-circle" size={12} color={theme.success} />
               <Text style={styles.paidText}>Quitado</Text>
             </View>
           )}
@@ -86,10 +89,10 @@ export default function LoanPersonCard({ person, onPress, onCharge }: LoanPerson
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -104,7 +107,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.accent,
+    backgroundColor: t.primaryFill,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -127,14 +130,14 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
     flex: 1,
   },
   paidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: `${COLORS.success}15`,
+    backgroundColor: alpha(t.success, 0.08),
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -142,11 +145,11 @@ const styles = StyleSheet.create({
   paidText: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.success,
+    color: t.success,
   },
   phone: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 8,
   },
   progressRow: {
@@ -158,18 +161,18 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 5,
-    backgroundColor: COLORS.border,
+    backgroundColor: t.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     borderRadius: 3,
   },
   progressText: {
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     fontWeight: '600',
   },
   amountsRow: {
@@ -178,23 +181,23 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 10,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 2,
   },
   amount: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.highlight,
+    color: t.primary,
   },
   totalAmount: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
   },
   dueDay: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.info,
+    color: t.info,
   },
   chargeBtn: {
     width: 40,

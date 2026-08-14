@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { Expense, LoanPerson } from '../types';
@@ -8,7 +8,10 @@ import { formatCurrency } from '../utils/formatting';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    // shouldShowAlert foi dividido em banner + lista; sem os dois o lembrete
+    // não aparece quando o app está aberto.
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -195,24 +198,32 @@ export async function scheduleExpenseDueAlert(
   }
 }
 
+/**
+ * Cancela os alertas das despesas removidas. Sem isso, apagar uma conta ainda
+ * dispararia o lembrete de vencimento dela depois.
+ */
+export async function cancelExpenseNotifications(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    for (const single of id.split(',').filter(Boolean)) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(single);
+      } catch {
+        // já disparada ou inexistente — ignorar
+      }
+    }
+  }
+}
+
 export function useNotificationListener(
   onNotification: (notification: Notifications.Notification) => void,
   onResponse: (response: Notifications.NotificationResponse) => void
 ) {
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
-
   useEffect(() => {
-    notificationListener.current = Notifications.addNotificationReceivedListener(onNotification);
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(onResponse);
-
+    const received = Notifications.addNotificationReceivedListener(onNotification);
+    const responded = Notifications.addNotificationResponseReceivedListener(onResponse);
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      received.remove();
+      responded.remove();
     };
   }, [onNotification, onResponse]);
 }

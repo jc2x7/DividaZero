@@ -12,9 +12,15 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../constants/colors';
-import { addSingleIncome, addInstallmentIncome } from '../database/database';
-import { getTodayString } from '../utils/formatting';
+import {
+  addSingleIncome,
+  addInstallmentIncome,
+  addFixedIncome,
+} from '../database/database';
+import { getTodayString, formatCurrency } from '../utils/formatting';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, RADIUS, SPACING, alpha } from '../constants/theme';
+import { Label, PrimaryButton, SegmentedControl } from './ui';
 
 interface AddIncomeModalProps {
   visible: boolean;
@@ -24,7 +30,13 @@ interface AddIncomeModalProps {
   month: number;
 }
 
-type IncomeType = 'SINGLE' | 'INSTALLMENT';
+type IncomeType = 'SINGLE' | 'INSTALLMENT' | 'RECURRING';
+
+const TYPE_HINT: Record<IncomeType, string> = {
+  SINGLE: 'Um valor que entrou só desta vez (bônus, venda, presente).',
+  INSTALLMENT: 'Um valor que você vai receber dividido em algumas vezes.',
+  RECURRING: 'Uma renda que entra todo mês, além do salário (aluguel, pensão).',
+};
 
 export default function AddIncomeModal({
   visible,
@@ -33,6 +45,9 @@ export default function AddIncomeModal({
   year,
   month,
 }: AddIncomeModalProps) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<IncomeType>('SINGLE');
@@ -53,19 +68,21 @@ export default function AddIncomeModal({
     onClose();
   };
 
+  const amountNum = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+  const installmentsNum = parseInt(installments, 10) || 2;
+
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Atenção', 'Digite o nome da entrada.');
+      Alert.alert('Falta o nome', 'Diga de onde veio essa entrada.');
       return;
     }
-    const amountNum = parseFloat(amount.replace(',', '.'));
     if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Atenção', 'Digite um valor válido.');
+      Alert.alert('Valor inválido', 'Digite um valor maior que zero.');
       return;
     }
     const dueDayNum = dueDay ? parseInt(dueDay, 10) : undefined;
     if (dueDay && (isNaN(dueDayNum!) || dueDayNum! < 1 || dueDayNum! > 31)) {
-      Alert.alert('Atenção', 'Dia de recebimento deve ser entre 1 e 31.');
+      Alert.alert('Dia inválido', 'O dia de recebimento deve estar entre 1 e 31.');
       return;
     }
 
@@ -75,8 +92,8 @@ export default function AddIncomeModal({
         name: name.trim(),
         category: 'OTHER' as const,
         amount: amountNum,
-        type: 'FIXED' as const,
-        installments_total: type === 'INSTALLMENT' ? parseInt(installments, 10) || 2 : 1,
+        type: 'VARIABLE' as const,
+        installments_total: type === 'INSTALLMENT' ? installmentsNum : 1,
         installments_current: 1,
         start_date: getTodayString(),
         is_active: 1 as const,
@@ -88,8 +105,10 @@ export default function AddIncomeModal({
 
       if (type === 'SINGLE') {
         await addSingleIncome(base, year, month);
-      } else {
+      } else if (type === 'INSTALLMENT') {
         await addInstallmentIncome(base, year, month);
+      } else {
+        await addFixedIncome(base, year, month);
       }
 
       resetForm();
@@ -113,102 +132,100 @@ export default function AddIncomeModal({
 
           <View style={styles.header}>
             <View style={styles.headerIcon}>
-              <MaterialCommunityIcons name="cash-plus" size={22} color={COLORS.success} />
+              <MaterialCommunityIcons name="arrow-down-left" size={20} color={theme.success} />
             </View>
-            <Text style={styles.title}>Nova Entrada</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
+            <Text style={styles.title}>Nova entrada</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn} hitSlop={8}>
+              <MaterialCommunityIcons name="close" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Name */}
-            <Text style={styles.label}>Nome da Entrada</Text>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Label>De onde veio</Label>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Freelance, Bônus, Venda..."
-              placeholderTextColor={COLORS.textLight}
+              placeholder="Freela, 13º, venda, aluguel recebido..."
+              placeholderTextColor={theme.textLight}
               value={name}
               onChangeText={setName}
             />
 
-            {/* Amount */}
-            <Text style={styles.label}>Valor (R$)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0,00"
-              placeholderTextColor={COLORS.textLight}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-            />
-
-            {/* Type */}
-            <Text style={styles.label}>Tipo</Text>
-            <View style={styles.typeRow}>
-              <TouchableOpacity
-                style={[styles.typeBtn, type === 'SINGLE' && styles.typeBtnActive]}
-                onPress={() => setType('SINGLE')}
-              >
-                <MaterialCommunityIcons
-                  name="cash"
-                  size={18}
-                  color={type === 'SINGLE' ? COLORS.success : COLORS.textSecondary}
-                />
-                <Text style={[styles.typeBtnText, type === 'SINGLE' && styles.typeBtnTextActive]}>
-                  Entrada Única
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.typeBtn, type === 'INSTALLMENT' && styles.typeBtnActive]}
-                onPress={() => setType('INSTALLMENT')}
-              >
-                <MaterialCommunityIcons
-                  name="cash-multiple"
-                  size={18}
-                  color={type === 'INSTALLMENT' ? COLORS.success : COLORS.textSecondary}
-                />
-                <Text style={[styles.typeBtnText, type === 'INSTALLMENT' && styles.typeBtnTextActive]}>
-                  Parcelada
-                </Text>
-              </TouchableOpacity>
+            <Label style={styles.spaced}>
+              Valor {type === 'INSTALLMENT' ? 'de cada parcela' : ''}
+            </Label>
+            <View style={styles.amountWrapper}>
+              <Text style={styles.currencyPrefix}>R$</Text>
+              <TextInput
+                style={styles.amountInput}
+                placeholder="0,00"
+                placeholderTextColor={theme.textLight}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+              />
             </View>
 
-            {/* Installments */}
+            <Label style={styles.spaced}>Como entra</Label>
+            <SegmentedControl
+              options={[
+                { value: 'SINGLE' as IncomeType, label: 'Única', icon: 'numeric-1-circle-outline' },
+                {
+                  value: 'INSTALLMENT' as IncomeType,
+                  label: 'Parcelada',
+                  icon: 'credit-card-outline',
+                },
+                { value: 'RECURRING' as IncomeType, label: 'Todo mês', icon: 'repeat' },
+              ]}
+              value={type}
+              onChange={setType}
+            />
+            <Text style={styles.hint}>{TYPE_HINT[type]}</Text>
+
             {type === 'INSTALLMENT' && (
               <>
-                <Text style={styles.label}>Número de Parcelas</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 3"
-                  placeholderTextColor={COLORS.textLight}
-                  value={installments}
-                  onChangeText={setInstallments}
-                  keyboardType="number-pad"
-                />
-                <Text style={styles.hint}>
-                  O valor será dividido em {parseInt(installments) || 2}x de{' '}
-                  {amount
-                    ? `R$ ${(parseFloat(amount.replace(',', '.')) / (parseInt(installments) || 2)).toFixed(2).replace('.', ',')}`
-                    : 'R$ 0,00'}{' '}
-                  ao longo dos próximos meses.
-                </Text>
+                <Label style={styles.spaced}>Em quantas vezes</Label>
+                <View style={styles.installmentRow}>
+                  <TouchableOpacity
+                    style={styles.stepBtn}
+                    onPress={() => setInstallments(String(Math.max(2, installmentsNum - 1)))}
+                  >
+                    <MaterialCommunityIcons name="minus" size={18} color={theme.text} />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.installmentInput}
+                    value={installments}
+                    onChangeText={(v) => setInstallments(v.replace(/[^0-9]/g, '').slice(0, 3))}
+                    keyboardType="number-pad"
+                  />
+                  <TouchableOpacity
+                    style={styles.stepBtn}
+                    onPress={() => setInstallments(String(Math.min(60, installmentsNum + 1)))}
+                  >
+                    <MaterialCommunityIcons name="plus" size={18} color={theme.text} />
+                  </TouchableOpacity>
+                </View>
+                {!isNaN(amountNum) && amountNum > 0 && (
+                  <Text style={styles.hint}>
+                    Total a receber:{' '}
+                    <Text style={{ fontWeight: '700', color: theme.success }}>
+                      {formatCurrency(amountNum * installmentsNum)}
+                    </Text>
+                  </Text>
+                )}
               </>
             )}
 
-            {/* Due Day */}
-            <Text style={styles.label}>Dia de Recebimento</Text>
-            <View style={styles.dueDateInput}>
+            <Label style={styles.spaced}>Cai no dia</Label>
+            <View style={styles.dueInput}>
               <MaterialCommunityIcons
-                name="calendar-check"
-                size={18}
-                color={dueDay ? COLORS.success : COLORS.textLight}
+                name="calendar-blank-outline"
+                size={17}
+                color={dueDay ? theme.success : theme.textLight}
               />
               <TextInput
-                style={styles.dueDateTextInput}
-                placeholder="1–31  (opcional)"
-                placeholderTextColor={COLORS.textLight}
+                style={styles.dueTextInput}
+                placeholder="opcional — 1 a 31"
+                placeholderTextColor={theme.textLight}
                 value={dueDay}
                 onChangeText={(v) => setDueDay(v.replace(/[^0-9]/g, '').slice(0, 2))}
                 keyboardType="number-pad"
@@ -216,17 +233,14 @@ export default function AddIncomeModal({
               />
             </View>
 
-            {/* Save Button */}
-            <TouchableOpacity
-              style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+            <PrimaryButton
+              label="Adicionar entrada"
+              icon="check"
               onPress={handleSave}
-              disabled={saving}
-            >
-              <MaterialCommunityIcons name="check" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>
-                {saving ? 'Salvando...' : 'Registrar Entrada'}
-              </Text>
-            </TouchableOpacity>
+              loading={saving}
+              color={theme.successFill}
+              style={{ marginTop: SPACING.xl, marginBottom: SPACING.md }}
+            />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -234,133 +248,98 @@ export default function AddIncomeModal({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '88%',
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: COLORS.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 10,
-  },
-  headerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: `${COLORS.success}20`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  closeBtn: { padding: 4 },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-    marginTop: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  typeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 12,
-  },
-  typeBtnActive: {
-    borderColor: COLORS.success,
-    backgroundColor: `${COLORS.success}10`,
-  },
-  typeBtnText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-  },
-  typeBtnTextActive: {
-    color: COLORS.success,
-    fontWeight: '700',
-  },
-  hint: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 6,
-    lineHeight: 17,
-    fontStyle: 'italic',
-  },
-  dueDateInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  dueDateTextInput: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.text,
-    padding: 0,
-  },
-  saveBtn: {
-    backgroundColor: COLORS.success,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+const makeStyles = (t: ThemePalette) =>
+  StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: t.overlay, justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: t.surface,
+      borderTopLeftRadius: RADIUS.xl + 4,
+      borderTopRightRadius: RADIUS.xl + 4,
+      paddingHorizontal: SPACING.xl,
+      paddingTop: SPACING.md,
+      maxHeight: '92%',
+    },
+    handle: {
+      width: 36,
+      height: 4,
+      backgroundColor: t.borderStrong,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: SPACING.lg,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      marginBottom: SPACING.lg,
+    },
+    headerIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: alpha(t.success, 0.12),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: { flex: 1, fontSize: 20, fontWeight: '700', color: t.text, letterSpacing: -0.3 },
+    closeBtn: { padding: 4 },
+    spaced: { marginTop: SPACING.lg },
+    hint: { fontSize: 12.5, color: t.textSecondary, marginTop: SPACING.sm, lineHeight: 18 },
+    input: {
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: 14,
+      fontSize: 15.5,
+      color: t.text,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    amountWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: SPACING.lg,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    currencyPrefix: { fontSize: 16, fontWeight: '600', color: t.textSecondary },
+    amountInput: { flex: 1, paddingVertical: 14, fontSize: 22, fontWeight: '700', color: t.text },
+    installmentRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+    stepBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.border,
+      backgroundColor: t.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    installmentInput: {
+      flex: 1,
+      textAlign: 'center',
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.border,
+      paddingVertical: 12,
+      fontSize: 19,
+      fontWeight: '700',
+      color: t.text,
+    },
+    dueInput: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    dueTextInput: { flex: 1, fontSize: 15, color: t.text, padding: 0 },
+  });

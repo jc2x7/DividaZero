@@ -80,6 +80,55 @@ export const getTodayString = (): string => {
 };
 
 /**
+ * Valor compacto para eixos de gráfico: 1.2k, 18k, 1,4M.
+ */
+export const formatCompact = (value: number): string => {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  if (abs >= 1_000) return `${Math.round(value / 1_000)}k`;
+  return String(Math.round(value));
+};
+
+// ── Índice absoluto de mês ────────────────────────────────────
+// Muitos cálculos (parcelas, plano de quitação, séries temporais) ficam triviais
+// se o par ano/mês virar um único inteiro contínuo.
+
+export const monthIndex = (year: number, month: number): number => year * 12 + month - 1;
+
+export const fromMonthIndex = (index: number): { year: number; month: number } => ({
+  year: Math.floor(index / 12),
+  month: (index % 12) + 1,
+});
+
+export const currentMonthIndex = (): number => {
+  const now = new Date();
+  return monthIndex(now.getFullYear(), now.getMonth() + 1);
+};
+
+/** 'Mar/26' — rótulo curto para eixos e listas. */
+export const formatMonthIndex = (index: number): string => {
+  const { year, month } = fromMonthIndex(index);
+  return `${getMonthShortName(month)}/${String(year).slice(2)}`;
+};
+
+/** 'Março de 2026' — rótulo por extenso. */
+export const formatMonthIndexLong = (index: number): string => {
+  const { year, month } = fromMonthIndex(index);
+  return `${getMonthName(month)} de ${year}`;
+};
+
+/** '3 anos e 2 meses' / '5 meses' — duração legível. */
+export const formatDuration = (months: number): string => {
+  if (months <= 0) return 'agora';
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  const parts: string[] = [];
+  if (y > 0) parts.push(`${y} ${y === 1 ? 'ano' : 'anos'}`);
+  if (m > 0) parts.push(`${m} ${m === 1 ? 'mês' : 'meses'}`);
+  return parts.join(' e ');
+};
+
+/**
  * Apply currency mask to input value
  */
 export const applyCurrencyMask = (value: string): string => {

@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { ThemePalette, alpha } from '../../constants/theme';
 import { formatCurrency, formatPercent } from '../../utils/formatting';
 import { calculateNetSalary } from '../../utils/calculations';
 import {
@@ -22,6 +23,8 @@ import {
 } from '../../constants/taxes2026';
 
 export default function SalaryCalcScreen() {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [grossSalary, setGrossSalary] = useState('');
   const [dependents, setDependents] = useState('0');
   const [otherDeductions, setOtherDeductions] = useState('0');
@@ -57,7 +60,7 @@ export default function SalaryCalcScreen() {
       <Text
         style={[
           styles.resultValue,
-          { color: color ?? COLORS.text },
+          { color: color ?? theme.text },
           bold && styles.resultValueBold,
           large && styles.resultValueLarge,
         ]}
@@ -115,7 +118,7 @@ export default function SalaryCalcScreen() {
         >
           {/* Header */}
           <View style={styles.headerCard}>
-            <MaterialCommunityIcons name="cash-multiple" size={32} color={COLORS.success} />
+            <MaterialCommunityIcons name="cash-multiple" size={32} color={theme.success} />
             <View>
               <Text style={styles.headerTitle}>Salário Líquido</Text>
               <Text style={styles.headerSubtitle}>
@@ -132,7 +135,7 @@ export default function SalaryCalcScreen() {
               value={grossSalary}
               onChangeText={(v) => { setGrossSalary(v); setCalculated(false); }}
               placeholder="Ex: 5000,00"
-              placeholderTextColor={COLORS.textLight}
+              placeholderTextColor={theme.textLight}
               keyboardType="decimal-pad"
             />
 
@@ -142,7 +145,7 @@ export default function SalaryCalcScreen() {
               value={dependents}
               onChangeText={(v) => { setDependents(v); setCalculated(false); }}
               placeholder="0"
-              placeholderTextColor={COLORS.textLight}
+              placeholderTextColor={theme.textLight}
               keyboardType="number-pad"
             />
 
@@ -152,16 +155,16 @@ export default function SalaryCalcScreen() {
               value={otherDeductions}
               onChangeText={(v) => { setOtherDeductions(v); setCalculated(false); }}
               placeholder="Pensão alimentícia, previdência privada..."
-              placeholderTextColor={COLORS.textLight}
+              placeholderTextColor={theme.textLight}
               keyboardType="decimal-pad"
             />
           </View>
 
           {/* Exempt notice */}
           {grossNum > 0 && grossNum <= IR_EXEMPT_LIMIT_2026 && (
-            <View style={[styles.alertBox, { backgroundColor: `${COLORS.success}15`, borderLeftColor: COLORS.success }]}>
-              <MaterialCommunityIcons name="check-circle" size={18} color={COLORS.success} />
-              <Text style={[styles.alertText, { color: COLORS.success }]}>
+            <View style={[styles.alertBox, { backgroundColor: alpha(theme.success, 0.08), borderLeftColor: theme.success }]}>
+              <MaterialCommunityIcons name="check-circle" size={18} color={theme.success} />
+              <Text style={[styles.alertText, { color: theme.success }]}>
                 Rendimento até R$ 2.259,20 — isento de Imposto de Renda
               </Text>
             </View>
@@ -190,7 +193,7 @@ export default function SalaryCalcScreen() {
               <ResultRow
                 label="(-) INSS"
                 value={result.inss}
-                color={COLORS.error}
+                color={theme.danger}
                 negative
               />
               {result.inssDetails.map((d) => (
@@ -205,12 +208,12 @@ export default function SalaryCalcScreen() {
               <ResultRow
                 label="(-) IRRF"
                 value={result.ir}
-                color={result.isExempt ? COLORS.success : COLORS.error}
+                color={result.isExempt ? theme.success : theme.danger}
                 negative={!result.isExempt}
               />
               {result.isExempt && (
                 <View style={styles.subRow}>
-                  <Text style={[styles.subRowLabel, { color: COLORS.success }]}>
+                  <Text style={[styles.subRowLabel, { color: theme.success }]}>
                     Isento — base de cálculo abaixo de R$ 5.000,00
                   </Text>
                 </View>
@@ -250,7 +253,7 @@ export default function SalaryCalcScreen() {
             <MaterialCommunityIcons
               name={showTables ? 'chevron-up' : 'chevron-down'}
               size={20}
-              color={COLORS.info}
+              color={theme.info}
             />
             <Text style={styles.tableToggleText}>
               {showTables ? 'Ocultar' : 'Ver'} Tabelas INSS e IRRF 2026
@@ -294,14 +297,14 @@ export default function SalaryCalcScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.background },
   content: { padding: 16, paddingBottom: 40 },
   headerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -311,10 +314,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  headerSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: t.text },
+  headerSubtitle: { fontSize: 12, color: t.textSecondary, marginTop: 2 },
   card: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -327,21 +330,21 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
     marginTop: 12,
   },
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 18,
-    color: COLORS.text,
+    color: t.text,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     fontWeight: '600',
   },
   alertBox: {
@@ -355,7 +358,7 @@ const styles = StyleSheet.create({
   },
   alertText: { flex: 1, fontSize: 12, lineHeight: 18 },
   calcBtn: {
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -367,7 +370,7 @@ const styles = StyleSheet.create({
   calcBtnDisabled: { opacity: 0.4 },
   calcBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   resultsCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -380,7 +383,7 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -390,20 +393,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
-  resultLabel: { fontSize: 14, color: COLORS.text },
+  resultLabel: { fontSize: 14, color: t.text },
   resultLabelBold: { fontWeight: '700' },
-  resultValue: { fontSize: 14, color: COLORS.text },
+  resultValue: { fontSize: 14, color: t.text },
   resultValueBold: { fontWeight: '700' },
   resultValueLarge: { fontSize: 18 },
   resultDivider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: t.border,
     marginVertical: 8,
   },
   resultGroupLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4,
@@ -414,8 +417,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingLeft: 16,
   },
-  subRowLabel: { fontSize: 11, color: COLORS.textSecondary, flex: 1 },
-  subRowValue: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' },
+  subRowLabel: { fontSize: 11, color: t.textSecondary, flex: 1 },
+  subRowValue: { fontSize: 11, color: t.textSecondary, fontWeight: '600' },
   liquidRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -423,17 +426,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     paddingHorizontal: 12,
-    backgroundColor: `${COLORS.success}12`,
+    backgroundColor: alpha(t.success, 0.07),
     marginTop: 4,
   },
-  liquidLabel: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-  liquidValue: { fontSize: 22, fontWeight: '900', color: COLORS.success },
+  liquidLabel: { fontSize: 16, fontWeight: '700', color: t.text },
+  liquidValue: { fontSize: 22, fontWeight: '900', color: t.success },
   effectiveRow: {
     alignItems: 'center',
     marginTop: 10,
   },
-  effectiveLabel: { fontSize: 12, color: COLORS.textSecondary },
-  effectiveValue: { fontWeight: '700', color: COLORS.text },
+  effectiveLabel: { fontSize: 12, color: t.textSecondary },
+  effectiveValue: { fontWeight: '700', color: t.text },
   tableToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -444,11 +447,11 @@ const styles = StyleSheet.create({
   },
   tableToggleText: {
     fontSize: 13,
-    color: COLORS.info,
+    color: t.info,
     fontWeight: '600',
   },
   tableSection: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 14,
     marginBottom: 12,
     overflow: 'hidden',
@@ -461,21 +464,21 @@ const styles = StyleSheet.create({
   tableSectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: t.border,
   },
   tableContainer: {},
   tableHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.secondary,
+    backgroundColor: t.surfaceAlt,
     padding: 10,
   },
   tableHeaderCell: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: t.textSecondary,
     textTransform: 'uppercase',
   },
   tableDataRow: {
@@ -483,23 +486,23 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   tableDataRowEven: {
-    backgroundColor: `${COLORS.background}88`,
+    backgroundColor: alpha(t.background, 0.53),
   },
   tableDataCell: {
     fontSize: 11,
-    color: COLORS.text,
+    color: t.text,
   },
   footnote: {
-    backgroundColor: `${COLORS.warning}10`,
+    backgroundColor: alpha(t.warning, 0.06),
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.warning,
+    borderLeftColor: t.warning,
   },
   footnoteText: {
     fontSize: 11,
-    color: COLORS.text,
+    color: t.text,
     lineHeight: 17,
   },
 });

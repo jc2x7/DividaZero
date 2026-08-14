@@ -1,19 +1,13 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Linking,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native';
 import {
   DrawerContentScrollView,
   DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { usePathname, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, RADIUS, SPACING, alpha } from '../constants/theme';
 
 interface MenuItem {
   label: string;
@@ -22,47 +16,95 @@ interface MenuItem {
   description: string;
 }
 
-const MENU_ITEMS: MenuItem[] = [
+/** Grupos separam o uso diário das ferramentas de cálculo pontuais. */
+const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
-    label: 'Dashboard',
-    icon: 'view-dashboard',
-    route: '/(drawer)/',
-    description: 'Visão geral das finanças',
+    title: 'Meu dinheiro',
+    items: [
+      {
+        label: 'Dashboard',
+        icon: 'view-dashboard-outline',
+        route: '/(drawer)/',
+        description: 'O mês de hoje',
+      },
+      {
+        label: 'Análise',
+        icon: 'chart-line',
+        route: '/(drawer)/analise',
+        description: 'Evolução e comparações',
+      },
+      {
+        label: 'Metas',
+        icon: 'flag-checkered',
+        route: '/(drawer)/metas',
+        description: 'Guardar com objetivo',
+      },
+      {
+        label: 'Plano de Quitação',
+        icon: 'rocket-launch-outline',
+        route: '/(drawer)/plano',
+        description: 'Sair das parcelas antes',
+      },
+      {
+        label: 'Planejador',
+        icon: 'clipboard-list-outline',
+        route: '/(drawer)/planejador',
+        description: 'Abater dívida mês a mês',
+      },
+      {
+        label: 'Importar Extrato',
+        icon: 'file-pdf-box',
+        route: '/(drawer)/importar',
+        description: 'Puxar lançamentos do PDF',
+      },
+    ],
   },
   {
-    label: 'Simular Juros',
-    icon: 'calculator-variant',
-    route: '/(drawer)/simulator',
-    description: 'Price & SAC',
+    title: 'Ferramentas',
+    items: [
+      {
+        label: 'Simular Juros',
+        icon: 'calculator-variant-outline',
+        route: '/(drawer)/simulator',
+        description: 'Price & SAC',
+      },
+      {
+        label: 'Salário Líquido',
+        icon: 'cash-multiple',
+        route: '/(drawer)/salary-calc',
+        description: 'INSS + IRRF 2026',
+      },
+      {
+        label: 'Rescisão & Férias',
+        icon: 'briefcase-check-outline',
+        route: '/(drawer)/labor-laws',
+        description: 'Cálculos CLT',
+      },
+      {
+        label: 'Dinheiro Emprestado',
+        icon: 'account-cash-outline',
+        route: '/(drawer)/lending',
+        description: 'Agenda de cobranças',
+      },
+    ],
   },
   {
-    label: 'Salário Líquido',
-    icon: 'cash-multiple',
-    route: '/(drawer)/salary-calc',
-    description: 'INSS + IRRF 2026',
-  },
-  {
-    label: 'Rescisão & Férias',
-    icon: 'briefcase-check',
-    route: '/(drawer)/labor-laws',
-    description: 'Cálculos CLT',
-  },
-  {
-    label: 'Dinheiro Emprestado',
-    icon: 'account-cash',
-    route: '/(drawer)/lending',
-    description: 'Agenda de cobranças',
-  },
-  {
-    label: 'Meus Dados',
-    icon: 'database-export',
-    route: '/(drawer)/dados',
-    description: 'Backup e restauração',
+    title: 'Aplicativo',
+    items: [
+      {
+        label: 'Ajustes e Dados',
+        icon: 'cog-outline',
+        route: '/(drawer)/dados',
+        description: 'Tema, backup e restauração',
+      },
+    ],
   },
 ];
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
   const pathname = usePathname();
+  const { theme, name, toggle } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const isActive = (route: string) => {
     if (route === '/(drawer)/') return pathname === '/' || pathname === '/index';
@@ -75,57 +117,64 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
-      {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={require('../assets/Logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
+        <Image source={require('../assets/Logo.png')} style={styles.logo} resizeMode="cover" />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.appName}>Dívida Zero</Text>
+          <Text style={styles.appSubtitle}>Controle financeiro completo</Text>
+        </View>
+      </View>
+
+      {MENU_GROUPS.map((group) => (
+        <View key={group.title} style={styles.group}>
+          <Text style={styles.groupTitle}>{group.title}</Text>
+          {group.items.map((item) => {
+            const active = isActive(item.route);
+            return (
+              <TouchableOpacity
+                key={item.route}
+                style={[styles.menuItem, active && styles.menuItemActive]}
+                onPress={() => router.push(item.route as never)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.iconContainer, active && styles.iconContainerActive]}>
+                  <MaterialCommunityIcons
+                    name={item.icon as never}
+                    size={20}
+                    color={active ? theme.primary : theme.drawerTextSecondary}
+                  />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
+                    {item.label}
+                  </Text>
+                  <Text style={styles.menuDescription}>{item.description}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ))}
+
+      <TouchableOpacity style={styles.themeToggle} onPress={toggle} activeOpacity={0.7}>
+        <MaterialCommunityIcons
+          name={name === 'dark' ? 'weather-sunny' : 'weather-night'}
+          size={19}
+          color={theme.drawerTextSecondary}
         />
-        <Text style={styles.appSubtitle}>Controle Financeiro Completo</Text>
-      </View>
+        <Text style={styles.themeToggleText}>
+          {name === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+        </Text>
+      </TouchableOpacity>
 
-      {/* Divider */}
-      <View style={styles.divider} />
-
-      {/* Menu Items */}
-      <View style={styles.menuContainer}>
-        {MENU_ITEMS.map((item) => {
-          const active = isActive(item.route);
-          return (
-            <TouchableOpacity
-              key={item.route}
-              style={[styles.menuItem, active && styles.menuItemActive]}
-              onPress={() => router.push(item.route as never)}
-            >
-              <View style={[styles.iconContainer, active && styles.iconContainerActive]}>
-                <MaterialCommunityIcons
-                  name={item.icon as never}
-                  size={22}
-                  color={active ? COLORS.highlight : COLORS.drawerTextSecondary}
-                />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={[styles.menuLabel, active && styles.menuLabelActive]}>
-                  {item.label}
-                </Text>
-                <Text style={styles.menuDescription}>{item.description}</Text>
-              </View>
-              {active && (
-                <View style={styles.activeIndicator} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.divider} />
-        <Text style={styles.footerText}>v1.0.0 · @juliolemosdf 2026</Text>
         <Text style={styles.footerCreator}>Criado por Julio Lemos</Text>
+        <Text style={styles.footerText}>v1.1.0 · @juliolemosdf</Text>
         <TouchableOpacity
-          onPress={() => Linking.openURL('https://jc2x7.github.io/DividaZero/politica-privacidade.html')}
+          onPress={() =>
+            Linking.openURL('https://jc2x7.github.io/DividaZero/politica-privacidade.html')
+          }
         >
           <Text style={styles.footerLink}>Política de Privacidade</Text>
         </TouchableOpacity>
@@ -134,113 +183,85 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.drawerBg,
-    flex: 1,
-  },
-  contentContainer: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  header: {
-    alignItems: 'center',
-    paddingTop: 30,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  logo: {
-    width: 180,
-    height: 80,
-    marginBottom: 6,
-  },
-  appSubtitle: {
-    fontSize: 12,
-    color: COLORS.drawerTextSecondary,
-    marginTop: 4,
-    letterSpacing: 0.5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    marginHorizontal: 20,
-  },
-  menuContainer: {
-    paddingTop: 10,
-    paddingHorizontal: 12,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginVertical: 2,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  menuItemActive: {
-    backgroundColor: 'rgba(233, 69, 96, 0.12)',
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  iconContainerActive: {
-    backgroundColor: 'rgba(233, 69, 96, 0.2)',
-  },
-  menuTextContainer: {
-    flex: 1,
-  },
-  menuLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.drawerTextSecondary,
-  },
-  menuLabelActive: {
-    color: COLORS.drawerText,
-  },
-  menuDescription: {
-    fontSize: 11,
-    color: 'rgba(178,190,195,0.6)',
-    marginTop: 1,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    right: 0,
-    top: '25%',
-    bottom: '25%',
-    width: 3,
-    backgroundColor: COLORS.highlight,
-    borderRadius: 2,
-  },
-  footer: {
-    marginTop: 'auto',
-    paddingBottom: 10,
-  },
-  footerText: {
-    textAlign: 'center',
-    color: 'rgba(178,190,195,0.4)',
-    fontSize: 11,
-    marginTop: 12,
-  },
-  footerCreator: {
-    textAlign: 'center',
-    color: 'rgba(178,190,195,0.55)',
-    fontSize: 11,
-    marginTop: 6,
-    fontWeight: '600',
-  },
-  footerLink: {
-    textAlign: 'center',
-    color: COLORS.highlight,
-    fontSize: 11,
-    marginTop: 4,
-    textDecorationLine: 'underline',
-  },
-});
+const makeStyles = (t: ThemePalette) =>
+  StyleSheet.create({
+    container: { backgroundColor: t.drawerBg, flex: 1 },
+    contentContainer: { flexGrow: 1, paddingBottom: SPACING.xl },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      paddingTop: SPACING.lg,
+      paddingBottom: SPACING.lg,
+      paddingHorizontal: SPACING.xl,
+    },
+    logo: { width: 44, height: 44, borderRadius: 11 },
+    appName: { fontSize: 17, fontWeight: '800', color: t.drawerText, letterSpacing: -0.3 },
+    appSubtitle: { fontSize: 11.5, color: t.textLight, marginTop: 1 },
+
+    group: { paddingHorizontal: SPACING.md, marginTop: SPACING.md },
+    groupTitle: {
+      fontSize: 10.5,
+      fontWeight: '700',
+      color: t.textLight,
+      textTransform: 'uppercase',
+      letterSpacing: 0.9,
+      marginLeft: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: SPACING.md,
+      borderRadius: RADIUS.md,
+      marginVertical: 1,
+    },
+    menuItemActive: { backgroundColor: t.drawerActiveBg },
+    iconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.sm + 2,
+      backgroundColor: t.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: SPACING.md,
+    },
+    iconContainerActive: { backgroundColor: alpha(t.primary, 0.14) },
+    menuTextContainer: { flex: 1, minWidth: 0 },
+    menuLabel: { fontSize: 14.5, fontWeight: '600', color: t.drawerTextSecondary },
+    menuLabelActive: { color: t.drawerText, fontWeight: '700' },
+    menuDescription: { fontSize: 11, color: t.textLight, marginTop: 1 },
+
+    themeToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginTop: SPACING.xl,
+      marginHorizontal: SPACING.xl,
+      paddingVertical: 11,
+      paddingHorizontal: SPACING.md,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    themeToggleText: { fontSize: 13, fontWeight: '600', color: t.drawerTextSecondary },
+
+    footer: { marginTop: 'auto', paddingTop: SPACING.xl },
+    divider: { height: 1, backgroundColor: t.divider, marginHorizontal: SPACING.xl },
+    footerCreator: {
+      textAlign: 'center',
+      color: t.textSecondary,
+      fontSize: 11.5,
+      marginTop: SPACING.md,
+      fontWeight: '600',
+    },
+    footerText: { textAlign: 'center', color: t.textLight, fontSize: 10.5, marginTop: 3 },
+    footerLink: {
+      textAlign: 'center',
+      color: t.primary,
+      fontSize: 11,
+      marginTop: 6,
+      textDecorationLine: 'underline',
+    },
+  });

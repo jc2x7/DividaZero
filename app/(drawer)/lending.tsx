@@ -16,7 +16,8 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { ThemePalette, alpha } from '../../constants/theme';
 import { LoanPerson } from '../../types';
 import {
   getAllLoanPersons,
@@ -32,6 +33,8 @@ import AddLoanModal from '../../components/AddLoanModal';
 import LoanPersonCard from '../../components/LoanPersonCard';
 
 export default function LendingScreen() {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [persons, setPersons] = useState<LoanPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -168,7 +171,7 @@ export default function LendingScreen() {
 
         {activeLoanPersons.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="account-cash" size={56} color={COLORS.textLight} />
+            <MaterialCommunityIcons name="account-cash" size={56} color={theme.textLight} />
             <Text style={styles.emptyText}>
               {showPaidOnly ? 'Nenhum empréstimo quitado' : 'Nenhum empréstimo ativo'}
             </Text>
@@ -232,7 +235,7 @@ export default function LendingScreen() {
                   onPress={() => setShowDetailModal(false)}
                   style={styles.closeBtn}
                 >
-                  <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
+                  <MaterialCommunityIcons name="close" size={22} color={theme.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -247,13 +250,13 @@ export default function LendingScreen() {
                   </View>
                   <View style={styles.detailStat}>
                     <Text style={styles.detailStatLabel}>Juros/mês</Text>
-                    <Text style={[styles.detailStatValue, { color: COLORS.warning }]}>
+                    <Text style={[styles.detailStatValue, { color: theme.warning }]}>
                       {selectedPerson.monthly_interest}%
                     </Text>
                   </View>
                   <View style={styles.detailStat}>
                     <Text style={styles.detailStatLabel}>Parcela</Text>
-                    <Text style={[styles.detailStatValue, { color: COLORS.highlight }]}>
+                    <Text style={[styles.detailStatValue, { color: theme.primary }]}>
                       {formatCurrency(
                         calculateLoanInstallment(
                           selectedPerson.total_amount,
@@ -289,7 +292,7 @@ export default function LendingScreen() {
 
                 {/* Payment Day */}
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="calendar" size={18} color={COLORS.info} />
+                  <MaterialCommunityIcons name="calendar" size={18} color={theme.info} />
                   <Text style={styles.infoText}>
                     Vence todo dia {selectedPerson.payment_day} do mês
                   </Text>
@@ -297,7 +300,7 @@ export default function LendingScreen() {
 
                 {selectedPerson.notes ? (
                   <View style={styles.infoRow}>
-                    <MaterialCommunityIcons name="note-text" size={18} color={COLORS.textSecondary} />
+                    <MaterialCommunityIcons name="note-text" size={18} color={theme.textSecondary} />
                     <Text style={styles.infoText}>{selectedPerson.notes}</Text>
                   </View>
                 ) : null}
@@ -327,7 +330,7 @@ export default function LendingScreen() {
                   style={styles.deleteBtn}
                   onPress={() => handleDelete(selectedPerson)}
                 >
-                  <MaterialCommunityIcons name="trash-can-outline" size={18} color={COLORS.error} />
+                  <MaterialCommunityIcons name="trash-can-outline" size={18} color={theme.danger} />
                   <Text style={styles.deleteBtnText}>Excluir Registro</Text>
                 </TouchableOpacity>
               </ScrollView>
@@ -339,11 +342,11 @@ export default function LendingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.background },
   content: { padding: 16, paddingBottom: 100 },
   banner: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: t.primaryFill,
     borderRadius: 18,
     padding: 18,
     marginBottom: 16,
@@ -354,7 +357,7 @@ const styles = StyleSheet.create({
   bannerLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '500', marginBottom: 4 },
   bannerValue: { color: '#fff', fontSize: 26, fontWeight: '800' },
   bannerStats: { alignItems: 'center' },
-  bannerStatValue: { color: COLORS.highlight, fontSize: 28, fontWeight: '900' },
+  bannerStatValue: { color: '#fff', fontSize: 28, fontWeight: '900' },
   bannerStatLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 11 },
   filterRow: {
     flexDirection: 'row',
@@ -362,19 +365,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  filterLabel: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  filterLabel: { fontSize: 16, fontWeight: '700', color: t.text },
   filterToggle: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: `${COLORS.info}15`,
+    backgroundColor: alpha(t.info, 0.08),
     borderWidth: 1,
-    borderColor: `${COLORS.info}40`,
+    borderColor: alpha(t.info, 0.25),
   },
-  filterToggleText: { fontSize: 12, color: COLORS.info, fontWeight: '600' },
+  filterToggleText: { fontSize: 12, color: t.info, fontWeight: '600' },
   emptyContainer: { alignItems: 'center', paddingVertical: 60, gap: 10 },
-  emptyText: { fontSize: 16, fontWeight: '600', color: COLORS.textSecondary },
-  emptySubtext: { fontSize: 13, color: COLORS.textLight },
+  emptyText: { fontSize: 16, fontWeight: '600', color: t.textSecondary },
+  emptySubtext: { fontSize: 13, color: t.textLight },
   fab: {
     position: 'absolute',
     bottom: 24,
@@ -382,10 +385,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.highlight,
+    shadowColor: t.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
@@ -397,7 +400,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   detailSheet: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: t.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -406,7 +409,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: COLORS.border,
+    backgroundColor: t.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 16,
@@ -421,14 +424,14 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.accent,
+    backgroundColor: t.primaryFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailAvatarText: { color: '#fff', fontSize: 22, fontWeight: '700' },
   detailHeaderText: { flex: 1 },
-  detailName: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  detailPhone: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  detailName: { fontSize: 18, fontWeight: '700', color: t.text },
+  detailPhone: { fontSize: 13, color: t.textSecondary, marginTop: 2 },
   closeBtn: { padding: 4 },
   detailStatsRow: {
     flexDirection: 'row',
@@ -437,13 +440,13 @@ const styles = StyleSheet.create({
   },
   detailStat: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
   },
-  detailStatLabel: { fontSize: 10, color: COLORS.textSecondary, marginBottom: 4 },
-  detailStatValue: { fontSize: 14, fontWeight: '800', color: COLORS.text },
+  detailStatLabel: { fontSize: 10, color: t.textSecondary, marginBottom: 4 },
+  detailStatValue: { fontSize: 14, fontWeight: '800', color: t.text },
   progressSection: { marginBottom: 16 },
   progressHeader: {
     flexDirection: 'row',
@@ -451,17 +454,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  progressTitle: { fontSize: 13, fontWeight: '600', color: COLORS.text },
-  progressCount: { fontSize: 13, fontWeight: '700', color: COLORS.highlight },
+  progressTitle: { fontSize: 13, fontWeight: '600', color: t.text },
+  progressCount: { fontSize: 13, fontWeight: '700', color: t.primary },
   progressBar: {
     height: 8,
-    backgroundColor: COLORS.border,
+    backgroundColor: t.border,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     borderRadius: 4,
   },
   infoRow: {
@@ -471,7 +474,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginBottom: 4,
   },
-  infoText: { flex: 1, fontSize: 14, color: COLORS.text },
+  infoText: { flex: 1, fontSize: 14, color: t.text },
   whatsappBtn: {
     backgroundColor: '#25D366',
     borderRadius: 14,
@@ -485,7 +488,7 @@ const styles = StyleSheet.create({
   },
   whatsappBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   paidBtn: {
-    backgroundColor: COLORS.success,
+    backgroundColor: t.successFill,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -503,5 +506,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 8,
   },
-  deleteBtnText: { color: COLORS.error, fontSize: 14, fontWeight: '600' },
+  deleteBtnText: { color: t.danger, fontSize: 14, fontWeight: '600' },
 });

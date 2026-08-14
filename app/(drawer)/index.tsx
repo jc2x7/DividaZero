@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,35 +15,73 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '../../constants/colors';
-import { CATEGORIES, getCategoryConfig } from '../../constants/categories';
+import { router } from 'expo-router';
+import { useCategories } from '../../hooks/useCategories';
 import { useMonthData } from '../../hooks/useMonthData';
+import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { ThemePalette, RADIUS, SPACING, alpha, categoryColor } from '../../constants/theme';
 import DebtCard from '../../components/DebtCard';
 import AddDebtModal from '../../components/AddDebtModal';
 import AddIncomeModal from '../../components/AddIncomeModal';
 import IncomeCard from '../../components/IncomeCard';
 import MonthYearPicker from '../../components/MonthYearPicker';
-import SummaryCard from '../../components/SummaryCard';
-import DonutChart from '../../components/DonutChart';
-import { formatCurrency, getMonthName } from '../../utils/formatting';
+import MonthOverview from '../../components/MonthOverview';
+import DebtDetailSheet from '../../components/DebtDetailSheet';
+import { Card, Chip, EmptyState, Label, PrimaryButton, StackedBar } from '../../components/ui';
+import { formatCurrency, monthIndex } from '../../utils/formatting';
 import { upsertSalary } from '../../database/database';
-import { ExpenseCategory } from '../../types';
+import { Expense, ExpenseCategory } from '../../types';
+
+type SectionKey = 'fixed' | 'installment' | 'variable';
+
+const SECTION_META: Record<
+  SectionKey,
+  { title: string; icon: string; hint: string; emptyHint: string }
+> = {
+  fixed: {
+    title: 'Fixas',
+    icon: 'repeat',
+    hint: 'Se repetem todo mês',
+    emptyHint: 'Aluguel, internet, academia — o que cai sempre.',
+  },
+  installment: {
+    title: 'Parceladas',
+    icon: 'credit-card-outline',
+    hint: 'Têm data para acabar',
+    emptyHint: 'Compras divididas em parcelas aparecem aqui.',
+  },
+  variable: {
+    title: 'Avulsas',
+    icon: 'cart-outline',
+    hint: 'Só neste mês',
+    emptyHint: 'Gastos únicos, que não se repetem.',
+  },
+};
 
 export default function DashboardScreen() {
   const today = new Date();
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { categories } = useCategories();
+
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [showAddDebt, setShowAddDebt] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<import('../../types').Expense | undefined>(undefined);
+  const [editingExpense, setEditingExpense] = useState<Expense | undefined>(undefined);
+  const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [salaryInput, setSalaryInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'ALL'>('ALL');
-  const [showCharts, setShowCharts] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
+    fixed: false,
+    installment: false,
+    variable: false,
+  });
 
-  const { expenses, incomes, salary, summary, loading, reload } = useMonthData(year, month);
+  const { expenses, incomes, salary, summary, groups, loading, reload } = useMonthData(year, month);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,22 +89,42 @@ export default function DashboardScreen() {
     }, [reload])
   );
 
-  const filteredExpenses =
-    filterCategory === 'ALL'
-      ? expenses
-      : expenses.filter((e) => e.category === filterCategory);
+  const now = new Date();
+  const isPastOrCurrent = monthIndex(year, month) <= monthIndex(now.getFullYear(), now.getMonth() + 1);
+
+  const applyFilter = useCallback(
+    (list: Expense[]) =>
+      filterCategory === 'ALL' ? list : list.filter((e) => e.category === filterCategory),
+    [filterCategory]
+  );
+
+  const sections = useMemo(
+    () =>
+      (['fixed', 'installment', 'variable'] as SectionKey[]).map((key) => {
+        const items = applyFilter(groups[key]);
+        return { key, items, total: items.reduce((s, e) => s + e.amount, 0) };
+      }),
+    [groups, applyFilter]
+  );
+
+  const activeCategories = summary.categoryBreakdown.map((c) => c.category);
+  const composition = [
+    { key: 'fixed', label: 'Fixas', value: summary.fixedTotal, color: theme.chart[0] },
+    { key: 'installment', label: 'Parceladas', value: summary.installmentTotal, color: theme.chart[1] },
+    { key: 'variable', label: 'Avulsas', value: summary.variableTotal, color: theme.chart[3] },
+  ];
 
   const handleOpenSalaryModal = () => {
     setSalaryInput(salary ? String(salary.amount) : '');
-    setOtherInput(salary ? String(salary.other_income) : '');
+    setOtherInput(salary && salary.other_income ? String(salary.other_income) : '');
     setShowSalaryModal(true);
   };
 
   const handleSaveSalary = async () => {
-    const amount = parseFloat(salaryInput.replace(',', '.'));
-    const other = parseFloat(otherInput.replace(',', '.')) || 0;
+    const amount = parseFloat(salaryInput.replace(/\./g, '').replace(',', '.'));
+    const other = parseFloat(otherInput.replace(/\./g, '').replace(',', '.')) || 0;
     if (isNaN(amount) || amount < 0) {
-      Alert.alert('Atenção', 'Digite um valor de salário válido.');
+      Alert.alert('Valor inválido', 'Digite um valor de renda válido.');
       return;
     }
     await upsertSalary(year, month, amount, other);
@@ -74,154 +132,217 @@ export default function DashboardScreen() {
     reload();
   };
 
-  const activeCategories = summary.categoryBreakdown.map((c) => c.category);
+  const openNewExpense = () => {
+    setShowFabMenu(false);
+    setEditingExpense(undefined);
+    setShowAddDebt(true);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.topBar}>
+        <MonthYearPicker year={year} month={month} onSelect={(y, m) => { setYear(y); setMonth(m); }} />
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={reload}
+            tintColor={theme.textSecondary}
+          />
+        }
       >
-        {/* Month Selector */}
-        <MonthYearPicker
-          year={year}
-          month={month}
-          onSelect={(y, m) => {
-            setYear(y);
-            setMonth(m);
-          }}
-        />
+        <MonthOverview summary={summary} onPressIncome={handleOpenSalaryModal} />
 
-        {/* Salary Banner */}
-        <TouchableOpacity style={styles.salaryBanner} onPress={handleOpenSalaryModal}>
-          <View>
-            <Text style={styles.salaryLabel}>Salário + Entradas</Text>
-            <Text style={styles.salaryValue}>
-              {formatCurrency((salary?.amount ?? 0) + (salary?.other_income ?? 0))}
+        {/* Aviso de atraso — só faz sentido em meses já iniciados */}
+        {isPastOrCurrent && summary.overdueCount > 0 && (
+          <TouchableOpacity
+            style={styles.alertBanner}
+            activeOpacity={0.8}
+            onPress={() => setFilterCategory('ALL')}
+          >
+            <MaterialCommunityIcons name="alert-circle-outline" size={19} color={theme.danger} />
+            <Text style={styles.alertText}>
+              {summary.overdueCount} {summary.overdueCount === 1 ? 'conta venceu' : 'contas venceram'} e
+              {summary.overdueCount === 1 ? ' continua' : ' continuam'} em aberto —{' '}
+              {formatCurrency(summary.overdueTotal)}
             </Text>
-            {salary?.other_income ? (
-              <Text style={styles.salaryOther}>
-                Salário: {formatCurrency(salary.amount)} · Outros: {formatCurrency(salary.other_income)}
-              </Text>
-            ) : null}
-          </View>
-          <View style={styles.editSalaryBtn}>
-            <MaterialCommunityIcons name="pencil" size={18} color="#fff" />
-            <Text style={styles.editSalaryText}>Editar</Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
-        {/* Summary */}
-        <SummaryCard
-          income={summary.salary + summary.otherIncome}
-          expenses={summary.totalExpenses}
-          balance={summary.balance}
-        />
-
-        {/* Entradas extras do mês */}
-        {incomes.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.infoBtnPlaceholder} />
-              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>
-                Entradas de {getMonthName(month)}/{year}
-              </Text>
+        {/* Composição das despesas */}
+        {summary.totalExpenses > 0 && (
+          <Card style={styles.block}>
+            <View style={styles.compositionHeader}>
+              <Label style={{ marginBottom: 0 }}>Para onde vai o dinheiro</Label>
+              <TouchableOpacity
+                onPress={() => router.push('/(drawer)/analise')}
+                hitSlop={8}
+                style={styles.linkBtn}
+              >
+                <Text style={styles.linkText}>Análise</Text>
+                <MaterialCommunityIcons name="chevron-right" size={15} color={theme.primary} />
+              </TouchableOpacity>
             </View>
+
+            <StackedBar segments={composition} height={10} />
+
+            <View style={styles.legend}>
+              {composition.map((c) => (
+                <View key={c.key} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: c.color }]} />
+                  <View style={{ minWidth: 0 }}>
+                    <Text style={styles.legendLabel}>{c.label}</Text>
+                    <Text style={styles.legendValue} numberOfLines={1}>
+                      {formatCurrency(c.value)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {/* Entradas extras */}
+        {incomes.length > 0 && (
+          <View style={styles.block}>
+            <Label>Entradas extras deste mês</Label>
             {incomes.map((inc) => (
               <IncomeCard key={inc.id} income={inc} onDeleted={reload} />
             ))}
           </View>
         )}
 
-        {/* Category Filter */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            {expenses.length > 0 ? (
-              <TouchableOpacity
-                style={styles.infoBtn}
-                onPress={() => setShowCharts(true)}
-                hitSlop={8}
-              >
-                <MaterialCommunityIcons name="information" size={20} color={COLORS.highlight} />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.infoBtnPlaceholder} />
-            )}
-            <Text style={styles.sectionTitle}>
-              Despesas de {getMonthName(month)}/{year}
-            </Text>
-          </View>
+        {/* Filtro por categoria */}
+        {activeCategories.length > 1 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterRow}
+            style={styles.block}
           >
-            <TouchableOpacity
-              style={[styles.filterChip, filterCategory === 'ALL' && styles.filterChipActive]}
+            <Chip
+              label={`Todas (${expenses.length})`}
+              active={filterCategory === 'ALL'}
               onPress={() => setFilterCategory('ALL')}
-            >
-              <Text style={[styles.filterChipText, filterCategory === 'ALL' && styles.filterChipTextActive]}>
-                Todas ({expenses.length})
-              </Text>
-            </TouchableOpacity>
-            {CATEGORIES.filter((c) => activeCategories.includes(c.value as ExpenseCategory)).map((cat) => (
-              <TouchableOpacity
-                key={cat.value}
-                style={[
-                  styles.filterChip,
-                  filterCategory === cat.value && {
-                    backgroundColor: `${cat.color}20`,
-                    borderColor: cat.color,
-                  },
-                ]}
-                onPress={() => setFilterCategory(cat.value as ExpenseCategory)}
-              >
-                <MaterialCommunityIcons
-                  name={cat.icon as never}
-                  size={14}
-                  color={filterCategory === cat.value ? cat.color : COLORS.textSecondary}
+            />
+            {categories
+              .filter((c) => activeCategories.includes(c.key))
+              .map((cat) => (
+                <Chip
+                  key={cat.key}
+                  label={cat.label}
+                  icon={cat.icon}
+                  color={categoryColor(cat.color, theme)}
+                  active={filterCategory === cat.key}
+                  onPress={() =>
+                    setFilterCategory((prev) => (prev === cat.key ? 'ALL' : cat.key))
+                  }
                 />
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    filterCategory === cat.value && { color: cat.color, fontWeight: '700' },
-                  ]}
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+              ))}
           </ScrollView>
+        )}
 
-          {/* Expenses List */}
-          {filteredExpenses.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="receipt" size={48} color={COLORS.textLight} />
-              <Text style={styles.emptyText}>Nenhuma despesa registrada</Text>
-              <Text style={styles.emptySubtext}>
-                Toque no + para adicionar uma despesa
-              </Text>
-            </View>
-          ) : (
-            filteredExpenses.map((expense) => (
-              <DebtCard
-                key={expense.id}
-                expense={expense}
-                onDeleted={reload}
-                onTogglePaid={reload}
-                onEdit={(exp) => {
-                  setEditingExpense(exp);
-                  setShowAddDebt(true);
-                }}
-              />
-            ))
-          )}
+        {/* Despesas separadas por natureza */}
+        {expenses.length === 0 ? (
+          <Card style={styles.block}>
+            <EmptyState
+              icon="receipt-text-outline"
+              title="Nenhuma despesa neste mês"
+              subtitle="Comece lançando o que já sai todo mês — depois some as compras parceladas."
+              action={
+                <PrimaryButton label="Adicionar despesa" icon="plus" onPress={openNewExpense} />
+              }
+            />
+          </Card>
+        ) : (
+          sections.map(({ key, items, total }) => {
+            const meta = SECTION_META[key];
+            const isCollapsed = collapsed[key];
+            // Com filtro ativo, seções sem correspondência somem em vez de
+            // aparecerem vazias — o filtro deve enxugar a tela, não poluí-la.
+            if (filterCategory !== 'ALL' && items.length === 0) return null;
+
+            return (
+              <View key={key} style={styles.block}>
+                <TouchableOpacity
+                  style={styles.sectionHeader}
+                  activeOpacity={0.7}
+                  onPress={() => setCollapsed((c) => ({ ...c, [key]: !c[key] }))}
+                >
+                  <MaterialCommunityIcons
+                    name={meta.icon as never}
+                    size={16}
+                    color={theme.textSecondary}
+                  />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.sectionTitle}>
+                      {meta.title}{' '}
+                      <Text style={styles.sectionCount}>
+                        {items.length > 0 ? `· ${items.length}` : ''}
+                      </Text>
+                    </Text>
+                    <Text style={styles.sectionHint}>{meta.hint}</Text>
+                  </View>
+                  <Text style={styles.sectionTotal}>{formatCurrency(total)}</Text>
+                  <MaterialCommunityIcons
+                    name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+                    size={19}
+                    color={theme.textLight}
+                  />
+                </TouchableOpacity>
+
+                {!isCollapsed &&
+                  (items.length === 0 ? (
+                    <Text style={styles.sectionEmpty}>{meta.emptyHint}</Text>
+                  ) : (
+                    items.map((expense) => (
+                      <DebtCard
+                        key={expense.id}
+                        expense={expense}
+                        overdue={
+                          isPastOrCurrent &&
+                          !expense.is_paid &&
+                          (monthIndex(year, month) < monthIndex(now.getFullYear(), now.getMonth() + 1) ||
+                            (!!expense.due_day && expense.due_day < now.getDate()))
+                        }
+                        onDeleted={reload}
+                        onTogglePaid={reload}
+                        onOpenDetail={setDetailExpense}
+                        onEdit={(exp) => {
+                          setEditingExpense(exp);
+                          setShowAddDebt(true);
+                        }}
+                      />
+                    ))
+                  ))}
+              </View>
+            );
+          })
+        )}
+
+        {/* Atalhos */}
+        <View style={styles.shortcuts}>
+          <Shortcut
+            icon="flag-checkered"
+            label="Metas"
+            hint="Guardar para um objetivo"
+            onPress={() => router.push('/(drawer)/metas')}
+          />
+          <Shortcut
+            icon="rocket-launch-outline"
+            label="Plano de quitação"
+            hint="Sair das parcelas antes"
+            onPress={() => router.push('/(drawer)/plano')}
+          />
         </View>
       </ScrollView>
 
-      {/* FAB speed dial */}
+      {/* FAB */}
       {showFabMenu && (
         <TouchableOpacity
           style={styles.fabBackdrop}
@@ -231,56 +352,47 @@ export default function DashboardScreen() {
       )}
       {showFabMenu && (
         <View style={styles.fabMenu}>
-          <TouchableOpacity
-            style={styles.fabMenuItem}
+          <FabAction
+            label="Entrada de dinheiro"
+            icon="arrow-down-left"
+            color={theme.successFill}
             onPress={() => {
               setShowFabMenu(false);
               setShowAddIncome(true);
             }}
-          >
-            <View style={styles.fabMenuLabel}>
-              <Text style={styles.fabMenuLabelText}>Adicionar Entrada</Text>
-            </View>
-            <View style={[styles.fabMenuBtn, { backgroundColor: COLORS.success }]}>
-              <MaterialCommunityIcons name="cash-plus" size={22} color="#fff" />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.fabMenuItem}
-            onPress={() => {
-              setShowFabMenu(false);
-              setEditingExpense(undefined);
-              setShowAddDebt(true);
-            }}
-          >
-            <View style={styles.fabMenuLabel}>
-              <Text style={styles.fabMenuLabelText}>Adicionar Despesa</Text>
-            </View>
-            <View style={[styles.fabMenuBtn, { backgroundColor: COLORS.error }]}>
-              <MaterialCommunityIcons name="receipt-text-plus" size={22} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          />
+          <FabAction
+            label="Despesa"
+            icon="arrow-up-right"
+            color={theme.dangerFill}
+            onPress={openNewExpense}
+          />
         </View>
       )}
       <TouchableOpacity
-        style={[styles.fab, showFabMenu && styles.fabOpen]}
+        style={[styles.fab, showFabMenu && { backgroundColor: theme.textSecondary }]}
         onPress={() => setShowFabMenu((v) => !v)}
+        activeOpacity={0.85}
       >
-        <MaterialCommunityIcons name={showFabMenu ? 'close' : 'plus'} size={28} color="#fff" />
+        <MaterialCommunityIcons
+          name={showFabMenu ? 'close' : 'plus'}
+          size={26}
+          color={theme.onFill}
+        />
       </TouchableOpacity>
 
-      {/* Add/Edit Debt Modal */}
       <AddDebtModal
         visible={showAddDebt}
-        onClose={() => { setShowAddDebt(false); setEditingExpense(undefined); }}
+        onClose={() => {
+          setShowAddDebt(false);
+          setEditingExpense(undefined);
+        }}
         onAdded={reload}
         year={year}
         month={month}
         editingExpense={editingExpense}
       />
 
-      {/* Add Income Modal */}
       <AddIncomeModal
         visible={showAddIncome}
         onClose={() => setShowAddIncome(false)}
@@ -289,82 +401,13 @@ export default function DashboardScreen() {
         month={month}
       />
 
-      {/* ── Charts Modal ── */}
-      <Modal
-        visible={showCharts}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCharts(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalSheet, styles.chartsSheet]}>
-            <View style={styles.handle} />
-            <View style={styles.chartsHeader}>
-              <Text style={styles.modalTitle}>
-                Análise · {getMonthName(month)}/{year}
-              </Text>
-              <TouchableOpacity onPress={() => setShowCharts(false)} style={{ padding: 4 }}>
-                <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            </View>
+      <DebtDetailSheet
+        expense={detailExpense}
+        onClose={() => setDetailExpense(null)}
+        onChanged={reload}
+      />
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Status pago / pendente */}
-              <View style={styles.chartSection}>
-                <Text style={styles.chartSectionTitle}>Status das Despesas</Text>
-                <DonutChart
-                  size={200}
-                  strokeWidth={36}
-                  data={[
-                    {
-                      value: summary.paidTotal,
-                      color: COLORS.success,
-                      label: 'Pagas',
-                      sublabel: formatCurrency(summary.paidTotal),
-                    },
-                    {
-                      value: summary.unpaidTotal,
-                      color: COLORS.error,
-                      label: 'Pendentes',
-                      sublabel: formatCurrency(summary.unpaidTotal),
-                    },
-                  ]}
-                  centerLabel={
-                    summary.totalExpenses > 0
-                      ? `${Math.round((summary.paidTotal / summary.totalExpenses) * 100)}%`
-                      : '0%'
-                  }
-                  centerSub="pago"
-                />
-              </View>
-
-              {/* Por categoria */}
-              {summary.categoryBreakdown.length > 0 && (
-                <View style={styles.chartSection}>
-                  <Text style={styles.chartSectionTitle}>Por Categoria</Text>
-                  <DonutChart
-                    size={200}
-                    strokeWidth={36}
-                    data={summary.categoryBreakdown.map((cat) => {
-                      const cfg = getCategoryConfig(cat.category);
-                      return {
-                        value: cat.total,
-                        color: cfg.color,
-                        label: cfg.label,
-                        sublabel: formatCurrency(cat.total),
-                      };
-                    })}
-                    centerLabel={formatCurrency(summary.totalExpenses)}
-                    centerSub="total"
-                  />
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Salary Modal */}
+      {/* Renda do mês */}
       <Modal
         visible={showSalaryModal}
         transparent
@@ -377,35 +420,36 @@ export default function DashboardScreen() {
         >
           <View style={styles.modalSheet}>
             <View style={styles.handle} />
-            <Text style={styles.modalTitle}>Editar Salário e Entradas</Text>
+            <Text style={styles.modalTitle}>Renda do mês</Text>
             <Text style={styles.modalSubtitle}>
-              {getMonthName(month)} / {year}
+              O valor vale deste mês em diante — os anteriores ficam como estão.
             </Text>
 
-            <Text style={styles.inputLabel}>Salário Principal (R$)</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={salaryInput}
-              onChangeText={setSalaryInput}
-              keyboardType="decimal-pad"
-              placeholder="0,00"
-              placeholderTextColor={COLORS.textLight}
-            />
+            <Label style={{ marginTop: SPACING.lg }}>Salário</Label>
+            <View style={styles.amountWrapper}>
+              <Text style={styles.currencyPrefix}>R$</Text>
+              <TextInput
+                style={styles.amountInput}
+                value={salaryInput}
+                onChangeText={setSalaryInput}
+                keyboardType="decimal-pad"
+                placeholder="0,00"
+                placeholderTextColor={theme.textLight}
+              />
+            </View>
 
-            <Text style={styles.inputLabel}>Outras Entradas (R$)</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={otherInput}
-              onChangeText={setOtherInput}
-              keyboardType="decimal-pad"
-              placeholder="Freelance, bônus, etc."
-              placeholderTextColor={COLORS.textLight}
-            />
-
-            <Text style={styles.salaryNote}>
-              * Ao alterar o salário, o valor será aplicado apenas a partir deste mês.
-              Os meses anteriores permanecem inalterados.
-            </Text>
+            <Label style={{ marginTop: SPACING.lg }}>Outras rendas fixas</Label>
+            <View style={styles.amountWrapper}>
+              <Text style={styles.currencyPrefix}>R$</Text>
+              <TextInput
+                style={styles.amountInput}
+                value={otherInput}
+                onChangeText={setOtherInput}
+                keyboardType="decimal-pad"
+                placeholder="0,00"
+                placeholderTextColor={theme.textLight}
+              />
+            </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -414,9 +458,7 @@ export default function DashboardScreen() {
               >
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmBtn} onPress={handleSaveSalary}>
-                <Text style={styles.confirmBtnText}>Salvar</Text>
-              </TouchableOpacity>
+              <PrimaryButton label="Salvar" onPress={handleSaveSalary} style={{ flex: 2 }} />
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -425,305 +467,249 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  salaryBanner: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  salaryLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  salaryValue: {
-    color: '#fff',
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  salaryOther: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
-    marginTop: 4,
-  },
-  editSalaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  editSalaryText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-    flex: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  infoBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: `${COLORS.highlight}15`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  infoBtnPlaceholder: {
-    width: 28,
-    height: 28,
-  },
-  chartsSheet: {
-    maxHeight: '90%',
-  },
-  chartsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  chartSection: {
-    backgroundColor: COLORS.background,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  chartSectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-  },
-  filterRow: {
-    gap: 8,
-    paddingBottom: 12,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: COLORS.card,
-  },
-  filterChipActive: {
-    backgroundColor: `${COLORS.highlight}15`,
-    borderColor: COLORS.highlight,
-  },
-  filterChipText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: COLORS.highlight,
-    fontWeight: '700',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  emptySubtext: {
-    fontSize: 13,
-    color: COLORS.textLight,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.highlight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.highlight,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  fabOpen: {
-    backgroundColor: COLORS.textSecondary,
-  },
-  fabBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    zIndex: 9,
-  },
-  fabMenu: {
-    position: 'absolute',
-    bottom: 96,
-    right: 24,
-    gap: 12,
-    zIndex: 10,
-  },
-  fabMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    justifyContent: 'flex-end',
-  },
-  fabMenuLabel: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  fabMenuLabelText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  fabMenuBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: COLORS.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-    marginTop: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  modalInput: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 18,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    fontWeight: '600',
-  },
-  salaryNote: {
-    fontSize: 11,
-    color: COLORS.textLight,
-    marginTop: 12,
-    lineHeight: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  cancelBtn: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  confirmBtn: {
-    flex: 2,
-    backgroundColor: COLORS.highlight,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  confirmBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-});
+function FabAction({
+  label,
+  icon,
+  color,
+  onPress,
+}: {
+  label: string;
+  icon: string;
+  color: string;
+  onPress: () => void;
+}) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <TouchableOpacity style={styles.fabMenuItem} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.fabMenuLabel}>
+        <Text style={styles.fabMenuLabelText}>{label}</Text>
+      </View>
+      <View style={[styles.fabMenuBtn, { backgroundColor: color }]}>
+        <MaterialCommunityIcons name={icon as never} size={20} color={theme.onFill} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function Shortcut({
+  icon,
+  label,
+  hint,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  hint: string;
+  onPress: () => void;
+}) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <TouchableOpacity style={styles.shortcut} onPress={onPress} activeOpacity={0.75}>
+      <View style={styles.shortcutIcon}>
+        <MaterialCommunityIcons name={icon as never} size={19} color={theme.primary} />
+      </View>
+      <Text style={styles.shortcutLabel}>{label}</Text>
+      <Text style={styles.shortcutHint} numberOfLines={2}>
+        {hint}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+const makeStyles = (t: ThemePalette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: t.background },
+    topBar: {
+      paddingVertical: SPACING.sm,
+      backgroundColor: t.background,
+      borderBottomWidth: 1,
+      borderBottomColor: t.divider,
+    },
+    scroll: { flex: 1 },
+    content: { padding: SPACING.lg, paddingBottom: 110 },
+    block: { marginTop: SPACING.lg },
+
+    alertBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: alpha(t.danger, 0.1),
+      borderWidth: 1,
+      borderColor: alpha(t.danger, 0.25),
+    },
+    alertText: { flex: 1, fontSize: 12.5, color: t.danger, lineHeight: 17, fontWeight: '500' },
+
+    compositionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: SPACING.md,
+    },
+    linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 1 },
+    linkText: { fontSize: 12.5, fontWeight: '700', color: t.primary },
+    legend: { flexDirection: 'row', marginTop: SPACING.md, gap: SPACING.md },
+    legendItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
+    legendDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+    legendLabel: { fontSize: 11, color: t.textSecondary },
+    legendValue: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: t.text,
+      fontVariant: ['tabular-nums'],
+    },
+
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      paddingVertical: SPACING.sm,
+      marginBottom: SPACING.sm,
+    },
+    sectionTitle: { fontSize: 14.5, fontWeight: '700', color: t.text },
+    sectionCount: { color: t.textLight, fontWeight: '600' },
+    sectionHint: { fontSize: 11, color: t.textLight, marginTop: 1 },
+    sectionTotal: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: t.text,
+      fontVariant: ['tabular-nums'],
+    },
+    sectionEmpty: {
+      fontSize: 12.5,
+      color: t.textLight,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.xs,
+      lineHeight: 18,
+    },
+
+    filterRow: { gap: SPACING.sm, paddingRight: SPACING.lg },
+
+    shortcuts: { flexDirection: 'row', gap: SPACING.md, marginTop: SPACING.xl },
+    shortcut: {
+      flex: 1,
+      backgroundColor: t.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: t.border,
+      padding: SPACING.lg,
+      gap: 3,
+    },
+    shortcutIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.sm + 2,
+      backgroundColor: alpha(t.primary, 0.11),
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.sm,
+    },
+    shortcutLabel: { fontSize: 14, fontWeight: '700', color: t.text },
+    shortcutHint: { fontSize: 11.5, color: t.textSecondary, lineHeight: 16 },
+
+    fab: {
+      position: 'absolute',
+      bottom: 24,
+      right: 20,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: t.primaryFill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: t.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.22,
+      shadowRadius: 10,
+      elevation: 6,
+    },
+    fabBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: t.overlay,
+      zIndex: 9,
+    },
+    fabMenu: { position: 'absolute', bottom: 92, right: 20, gap: SPACING.md, zIndex: 10 },
+    fabMenuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      justifyContent: 'flex-end',
+    },
+    fabMenuLabel: {
+      backgroundColor: t.surface,
+      borderRadius: RADIUS.sm,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: 7,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    fabMenuLabelText: { fontSize: 13, fontWeight: '600', color: t.text },
+    fabMenuBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    modalOverlay: { flex: 1, backgroundColor: t.overlay, justifyContent: 'flex-end' },
+    modalSheet: {
+      backgroundColor: t.surface,
+      borderTopLeftRadius: RADIUS.xl + 4,
+      borderTopRightRadius: RADIUS.xl + 4,
+      padding: SPACING.xl,
+      paddingTop: SPACING.md,
+    },
+    handle: {
+      width: 36,
+      height: 4,
+      backgroundColor: t.borderStrong,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: SPACING.lg,
+    },
+    modalTitle: { fontSize: 20, fontWeight: '700', color: t.text, letterSpacing: -0.3 },
+    modalSubtitle: { fontSize: 13, color: t.textSecondary, marginTop: 4, lineHeight: 18 },
+    amountWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: SPACING.lg,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    currencyPrefix: { fontSize: 16, fontWeight: '600', color: t.textSecondary },
+    amountInput: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 21,
+      fontWeight: '700',
+      color: t.text,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: SPACING.md,
+      marginTop: SPACING.xl,
+      marginBottom: SPACING.sm,
+      alignItems: 'center',
+    },
+    cancelBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: t.border,
+      borderRadius: RADIUS.md,
+      paddingVertical: 15,
+      alignItems: 'center',
+    },
+    cancelBtnText: { color: t.textSecondary, fontWeight: '600', fontSize: 15 },
+  });

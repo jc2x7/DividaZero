@@ -12,7 +12,8 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, alpha } from '../constants/theme';
 import { addLoanPerson } from '../database/database';
 import { schedulePaymentNotification } from '../hooks/useNotifications';
 import { getLoanPerson } from '../database/database';
@@ -37,6 +38,8 @@ function Field({
   placeholder?: string;
   keyboardType?: 'default' | 'decimal-pad' | 'phone-pad' | 'number-pad';
 }) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <>
       <Text style={styles.label}>{label}</Text>
@@ -45,7 +48,7 @@ function Field({
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor={COLORS.textLight}
+        placeholderTextColor={theme.textLight}
         keyboardType={keyboardType}
       />
     </>
@@ -53,6 +56,8 @@ function Field({
 }
 
 export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModalProps) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
@@ -136,7 +141,7 @@ export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModal
           <View style={styles.header}>
             <Text style={styles.title}>Novo Empréstimo</Text>
             <TouchableOpacity onPress={onClose}>
-              <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
+              <MaterialCommunityIcons name="close" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -184,7 +189,7 @@ export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModal
               value={notes}
               onChangeText={setNotes}
               placeholder="Motivo do empréstimo..."
-              placeholderTextColor={COLORS.textLight}
+              placeholderTextColor={theme.textLight}
               multiline
               numberOfLines={3}
             />
@@ -206,14 +211,14 @@ export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModal
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: t.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -222,7 +227,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: COLORS.border,
+    backgroundColor: t.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 16,
@@ -236,33 +241,33 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 8,
     marginTop: 14,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: COLORS.text,
+    color: t.text,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: t.border,
   },
   notesInput: {
     height: 80,
     textAlignVertical: 'top',
   },
   saveBtn: {
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',

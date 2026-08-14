@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 import { AmortizationRow } from '../types';
 import { formatCurrency } from '../utils/formatting';
-import { COLORS } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, alpha } from '../constants/theme';
 
 interface AmortizationTableProps {
   rows: AmortizationRow[];
@@ -25,6 +26,8 @@ export default function AmortizationTable({
   totalPayment,
   monthlyPayment,
 }: AmortizationTableProps) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [showAll, setShowAll] = useState(false);
   const displayRows = showAll ? rows : rows.slice(0, 6);
 
@@ -32,23 +35,23 @@ export default function AmortizationTable({
     <View style={styles.container}>
       {/* Summary Cards */}
       <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { borderTopColor: COLORS.highlight }]}>
+        <View style={[styles.summaryCard, { borderTopColor: theme.primary }]}>
           <Text style={styles.summaryLabel}>
             {type === 'PRICE' ? 'Parcela Fixa' : '1ª Parcela'}
           </Text>
-          <Text style={[styles.summaryValue, { color: COLORS.highlight }]}>
+          <Text style={[styles.summaryValue, { color: theme.primary }]}>
             {formatCurrency(rows[0]?.payment ?? 0)}
           </Text>
         </View>
-        <View style={[styles.summaryCard, { borderTopColor: COLORS.error }]}>
+        <View style={[styles.summaryCard, { borderTopColor: theme.danger }]}>
           <Text style={styles.summaryLabel}>Total de Juros</Text>
-          <Text style={[styles.summaryValue, { color: COLORS.error }]}>
+          <Text style={[styles.summaryValue, { color: theme.danger }]}>
             {formatCurrency(totalInterest)}
           </Text>
         </View>
-        <View style={[styles.summaryCard, { borderTopColor: COLORS.info }]}>
+        <View style={[styles.summaryCard, { borderTopColor: theme.info }]}>
           <Text style={styles.summaryLabel}>Total Pago</Text>
-          <Text style={[styles.summaryValue, { color: COLORS.info }]}>
+          <Text style={[styles.summaryValue, { color: theme.info }]}>
             {formatCurrency(totalPayment)}
           </Text>
         </View>
@@ -74,10 +77,10 @@ export default function AmortizationTable({
               {row.period}
             </Text>
             <Text style={[styles.td, styles.col2]}>{formatCurrency(row.payment)}</Text>
-            <Text style={[styles.td, styles.col2, { color: COLORS.error }]}>
+            <Text style={[styles.td, styles.col2, { color: theme.danger }]}>
               {formatCurrency(row.interest)}
             </Text>
-            <Text style={[styles.td, styles.col2, { color: COLORS.success }]}>
+            <Text style={[styles.td, styles.col2, { color: theme.success }]}>
               {formatCurrency(row.amortization)}
             </Text>
             <Text style={[styles.td, styles.col2]}>
@@ -101,9 +104,9 @@ export default function AmortizationTable({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -117,11 +120,11 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: t.border,
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
@@ -129,7 +132,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 10,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -140,12 +143,12 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: COLORS.secondary,
+    backgroundColor: t.surfaceAlt,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
   th: {
-    color: '#fff',
+    color: t.textSecondary,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -159,15 +162,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   tableRowEven: {
-    backgroundColor: `${COLORS.background}88`,
+    backgroundColor: alpha(t.background, 0.53),
   },
   td: {
     fontSize: 12,
-    color: COLORS.text,
+    color: t.text,
   },
   tdPeriod: {
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
   },
   col1: {
     width: 36,
@@ -180,11 +183,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: t.border,
   },
   showMoreText: {
     fontSize: 13,
-    color: COLORS.highlight,
+    color: t.primary,
     fontWeight: '600',
   },
 });

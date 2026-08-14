@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { ThemePalette, alpha } from '../../constants/theme';
 import { formatCurrency } from '../../utils/formatting';
 import {
   calculateSeverance,
@@ -39,6 +40,8 @@ function NumberInput({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <>
       <Text style={styles.inputLabel}>{label}</Text>
@@ -47,7 +50,7 @@ function NumberInput({
         value={value}
         onChangeText={onChange}
         placeholder={placeholder ?? '0'}
-        placeholderTextColor={COLORS.textLight}
+        placeholderTextColor={theme.textLight}
         keyboardType="decimal-pad"
       />
     </>
@@ -55,6 +58,8 @@ function NumberInput({
 }
 
 export default function LaborLawsScreen() {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [tab, setTab] = useState<Tab>('SEVERANCE');
 
   // Severance State
@@ -125,7 +130,7 @@ export default function LaborLawsScreen() {
       <Text
         style={[
           styles.resultLineValue,
-          { color: color ?? COLORS.text },
+          { color: color ?? theme.text },
           bold && { fontWeight: '800' },
           large && { fontSize: 18 },
         ]}
@@ -150,7 +155,7 @@ export default function LaborLawsScreen() {
             <MaterialCommunityIcons
               name="briefcase-check"
               size={18}
-              color={tab === 'SEVERANCE' ? COLORS.highlight : COLORS.textSecondary}
+              color={tab === 'SEVERANCE' ? theme.primary : theme.textSecondary}
             />
             <Text style={[styles.tabText, tab === 'SEVERANCE' && styles.tabTextActive]}>
               Rescisão
@@ -163,7 +168,7 @@ export default function LaborLawsScreen() {
             <MaterialCommunityIcons
               name="beach"
               size={18}
-              color={tab === 'VACATION' ? COLORS.highlight : COLORS.textSecondary}
+              color={tab === 'VACATION' ? theme.primary : theme.textSecondary}
             />
             <Text style={[styles.tabText, tab === 'VACATION' && styles.tabTextActive]}>
               Férias
@@ -211,7 +216,7 @@ export default function LaborLawsScreen() {
                   <MaterialCommunityIcons
                     name={sevPriorWorked ? 'checkbox-marked' : 'checkbox-blank-outline'}
                     size={22}
-                    color={sevPriorWorked ? COLORS.highlight : COLORS.textSecondary}
+                    color={sevPriorWorked ? theme.primary : theme.textSecondary}
                   />
                   <Text style={styles.checkLabel}>Aviso prévio trabalhado (não indenizado)</Text>
                 </TouchableOpacity>
@@ -229,26 +234,26 @@ export default function LaborLawsScreen() {
               {severanceResult && (
                 <View style={styles.resultsCard}>
                   <Text style={styles.resultsTitle}>Verbas Rescisórias</Text>
-                  <ResultLine label="Saldo de Salário" value={severanceResult.salaryBalance} color={COLORS.success} />
+                  <ResultLine label="Saldo de Salário" value={severanceResult.salaryBalance} color={theme.success} />
                   {severanceResult.priorNotice > 0 && (
-                    <ResultLine label="Aviso Prévio Indenizado" value={severanceResult.priorNotice} color={COLORS.success} />
+                    <ResultLine label="Aviso Prévio Indenizado" value={severanceResult.priorNotice} color={theme.success} />
                   )}
                   {severanceResult.thirteenthSalary > 0 && (
-                    <ResultLine label="13º Salário Proporcional" value={severanceResult.thirteenthSalary} color={COLORS.success} />
+                    <ResultLine label="13º Salário Proporcional" value={severanceResult.thirteenthSalary} color={theme.success} />
                   )}
                   {severanceResult.vacationBalance > 0 && (
-                    <ResultLine label="Férias Proporcionais" value={severanceResult.vacationBalance} color={COLORS.success} />
+                    <ResultLine label="Férias Proporcionais" value={severanceResult.vacationBalance} color={theme.success} />
                   )}
                   {severanceResult.vacationThird > 0 && (
-                    <ResultLine label="1/3 sobre Férias" value={severanceResult.vacationThird} color={COLORS.success} />
+                    <ResultLine label="1/3 sobre Férias" value={severanceResult.vacationThird} color={theme.success} />
                   )}
                   {severanceResult.fgtsFine > 0 && (
-                    <ResultLine label="Multa do FGTS" value={severanceResult.fgtsFine} color={COLORS.success} />
+                    <ResultLine label="Multa do FGTS" value={severanceResult.fgtsFine} color={theme.success} />
                   )}
                   <View style={styles.divider} />
                   <ResultLine label="Total Bruto" value={severanceResult.total} bold />
-                  <ResultLine label="INSS" value={severanceResult.inss} color={COLORS.error} sign="-" />
-                  <ResultLine label="IRRF" value={severanceResult.ir} color={severanceResult.ir === 0 ? COLORS.success : COLORS.error} sign="-" />
+                  <ResultLine label="INSS" value={severanceResult.inss} color={theme.danger} sign="-" />
+                  <ResultLine label="IRRF" value={severanceResult.ir} color={severanceResult.ir === 0 ? theme.success : theme.danger} sign="-" />
                   <View style={styles.divider} />
                   <View style={styles.netRow}>
                     <Text style={styles.netLabel}>(=) Total Líquido</Text>
@@ -268,9 +273,9 @@ export default function LaborLawsScreen() {
                 <NumberInput label="Dias para Venda (Abono Pecuniário, máx 10)" value={vacSellDays} onChange={(v) => { setVacSellDays(v); setVacCalc(false); }} placeholder="0" />
               </View>
 
-              <View style={[styles.alertBox, { borderLeftColor: COLORS.info, backgroundColor: `${COLORS.info}10` }]}>
-                <MaterialCommunityIcons name="information" size={18} color={COLORS.info} />
-                <Text style={[styles.alertText, { color: COLORS.text }]}>
+              <View style={[styles.alertBox, { borderLeftColor: theme.info, backgroundColor: alpha(theme.info, 0.06) }]}>
+                <MaterialCommunityIcons name="information" size={18} color={theme.info} />
+                <Text style={[styles.alertText, { color: theme.text }]}>
                   O funcionário pode converter até 1/3 das férias (10 dias) em abono pecuniário.
                   Período aquisitivo de 12 meses = direito a 30 dias de férias + 1/3 constitucional.
                 </Text>
@@ -303,14 +308,14 @@ export default function LaborLawsScreen() {
                     )}
                   </View>
                   <View style={styles.divider} />
-                  <ResultLine label="Férias Brutas" value={vacationResult.vacationGross} color={COLORS.success} />
-                  <ResultLine label="1/3 Constitucional" value={vacationResult.vacationThird} color={COLORS.success} />
+                  <ResultLine label="Férias Brutas" value={vacationResult.vacationGross} color={theme.success} />
+                  <ResultLine label="1/3 Constitucional" value={vacationResult.vacationThird} color={theme.success} />
                   {vacationResult.pecuniary > 0 && (
-                    <ResultLine label="Abono Pecuniário" value={vacationResult.pecuniary} color={COLORS.success} />
+                    <ResultLine label="Abono Pecuniário" value={vacationResult.pecuniary} color={theme.success} />
                   )}
                   <View style={styles.divider} />
-                  <ResultLine label="INSS" value={vacationResult.inss} color={COLORS.error} sign="-" />
-                  <ResultLine label="IRRF" value={vacationResult.ir} color={vacationResult.ir === 0 ? COLORS.success : COLORS.error} sign="-" />
+                  <ResultLine label="INSS" value={vacationResult.inss} color={theme.danger} sign="-" />
+                  <ResultLine label="IRRF" value={vacationResult.ir} color={vacationResult.ir === 0 ? theme.success : theme.danger} sign="-" />
                   <View style={styles.divider} />
                   <View style={styles.netRow}>
                     <Text style={styles.netLabel}>(=) Férias Líquidas</Text>
@@ -326,13 +331,13 @@ export default function LaborLawsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.background },
   tabRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: t.border,
   },
   tab: {
     flex: 1,
@@ -344,12 +349,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: COLORS.highlight },
-  tabText: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
-  tabTextActive: { color: COLORS.highlight },
+  tabActive: { borderBottomColor: t.primary },
+  tabText: { fontSize: 14, fontWeight: '600', color: t.textSecondary },
+  tabTextActive: { color: t.primary },
   content: { padding: 16, paddingBottom: 40 },
   card: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -362,27 +367,27 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
     marginTop: 12,
   },
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 17,
-    color: COLORS.text,
+    color: t.text,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     fontWeight: '600',
   },
   sectionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -397,23 +402,23 @@ const styles = StyleSheet.create({
   dismissalBtn: {
     width: '48%',
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
   },
   dismissalBtnActive: {
-    borderColor: COLORS.highlight,
-    backgroundColor: `${COLORS.highlight}12`,
+    borderColor: t.primary,
+    backgroundColor: alpha(t.primary, 0.07),
   },
   dismissalLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 2,
   },
-  dismissalLabelActive: { color: COLORS.highlight },
-  dismissalDesc: { fontSize: 10, color: COLORS.textLight },
+  dismissalLabelActive: { color: t.primary },
+  dismissalDesc: { fontSize: 10, color: t.textLight },
   checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -421,9 +426,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 12,
   },
-  checkLabel: { fontSize: 14, color: COLORS.text },
+  checkLabel: { fontSize: 14, color: t.text },
   calcBtn: {
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -435,7 +440,7 @@ const styles = StyleSheet.create({
   calcBtnDisabled: { opacity: 0.4 },
   calcBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   resultsCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -448,7 +453,7 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
     marginBottom: 14,
     textAlign: 'center',
   },
@@ -458,11 +463,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 7,
   },
-  resultLineLabel: { fontSize: 13, color: COLORS.text, flex: 1 },
+  resultLineLabel: { fontSize: 13, color: t.text, flex: 1 },
   resultLineValue: { fontSize: 14, fontWeight: '600' },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: t.border,
     marginVertical: 8,
   },
   netRow: {
@@ -471,23 +476,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    backgroundColor: `${COLORS.success}12`,
+    backgroundColor: alpha(t.success, 0.07),
     borderRadius: 10,
     marginTop: 4,
   },
-  netLabel: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-  netValue: { fontSize: 22, fontWeight: '900', color: COLORS.success },
+  netLabel: { fontSize: 16, fontWeight: '700', color: t.text },
+  netValue: { fontSize: 22, fontWeight: '900', color: t.success },
   daysRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderRadius: 10,
     padding: 12,
     marginBottom: 8,
   },
-  daysLabel: { fontSize: 12, color: COLORS.textSecondary },
-  daysValue: { fontSize: 14, fontWeight: '700', color: COLORS.text, marginRight: 10 },
+  daysLabel: { fontSize: 12, color: t.textSecondary },
+  daysValue: { fontSize: 14, fontWeight: '700', color: t.text, marginRight: 10 },
   alertBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',

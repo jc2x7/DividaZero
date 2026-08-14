@@ -1,6 +1,16 @@
 export type AmortizationType = 'PRICE' | 'SAC';
-export type ExpenseType = 'FIXED' | 'INSTALLMENT';
-export type ExpenseCategory =
+
+/**
+ * FIXED       → recorrente, se repete todo mês (aluguel, academia)
+ * INSTALLMENT → compra parcelada, tem fim previsto (celular em 12x)
+ * VARIABLE    → gasto avulso, existe só no mês em que foi lançado
+ */
+export type ExpenseType = 'FIXED' | 'INSTALLMENT' | 'VARIABLE';
+
+/** Alcance de uma exclusão/edição de lançamento recorrente ou parcelado. */
+export type DeleteScope = 'one' | 'future' | 'all';
+/** Chaves das categorias originais. Continuam existindo, mas não são mais o limite. */
+export type BuiltinCategory =
   | 'RENT'
   | 'CAR'
   | 'GYM'
@@ -12,6 +22,12 @@ export type ExpenseCategory =
   | 'UTILITIES'
   | 'INVESTMENT'
   | 'OTHER';
+
+/**
+ * Categoria de um lançamento. É `string` porque o usuário pode criar as suas —
+ * as chaves personalizadas têm o formato `CUSTOM_<id>`.
+ */
+export type ExpenseCategory = string;
 
 export interface Expense {
   id: number;
@@ -33,6 +49,92 @@ export interface Expense {
   is_paid?: number;        // 1 = pago, 0 = pendente
   notification_id?: string;
   is_income?: number;      // 1 = entrada de dinheiro, 0 = despesa
+  /**
+   * Liga todas as ocorrências de um mesmo lançamento: as 12 parcelas de uma
+   * compra, os 60 meses de uma despesa fixa. É o que permite apagar ou editar
+   * a compra inteira em vez de um mês solto.
+   */
+  group_id?: string;
+}
+
+/**
+ * Dívida do planejador: um saldo devedor sem parcela fixa, que a pessoa vai
+ * abatendo no ritmo que consegue. O que não for pago passa para o mês seguinte.
+ */
+export interface PlanDebt {
+  id: number;
+  name: string;
+  /** Valor original da dívida, no mês em que ela entrou. */
+  amount: number;
+  category: string;
+  /** 'YYYY-MM' em que a dívida passa a existir. */
+  start_month: string;
+  notes?: string;
+  is_archived: number;
+  created_at?: string;
+}
+
+export interface PlanPayment {
+  debt_id: number;
+  month: string;
+  /** Percentual do saldo de abertura do mês que foi abatido. */
+  percent: number;
+}
+
+/** Situação de uma dívida em um mês do planejador. */
+export interface PlanRow {
+  debt: PlanDebt;
+  saldoInicial: number;
+  percent: number;
+  pago: number;
+  saldoFinal: number;
+  quitadaAntes: boolean;
+}
+
+export interface PlanMonth {
+  month: string;
+  linhas: PlanRow[];
+  totalPago: number;
+  totalRestante: number;
+  totalOriginal: number;
+}
+
+export interface Category {
+  key: string;
+  label: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+  /** 1 = uma das categorias originais; não pode ser excluída, só arquivada. */
+  is_builtin: number;
+  is_archived: number;
+}
+
+export interface Goal {
+  id: number;
+  name: string;
+  target_amount: number;
+  icon: string;
+  color: string;
+  /** 'YYYY-MM' — mês em que a pessoa quer ter concluído. */
+  deadline?: string;
+  /** Aporte mensal planejado, se a pessoa definiu um. */
+  monthly_target?: number;
+  notes?: string;
+  is_archived: number;
+  created_at?: string;
+  /** Soma dos aportes — vem calculada da consulta, não é coluna. */
+  saved: number;
+}
+
+export interface GoalContribution {
+  id: number;
+  goal_id: number;
+  /** Negativo representa uma retirada. */
+  amount: number;
+  date: string;
+  note?: string;
+  created_at?: string;
 }
 
 export interface Salary {
@@ -125,4 +227,56 @@ export interface MonthSummary {
   categoryBreakdown: { category: ExpenseCategory; total: number }[];
   paidTotal: number;
   unpaidTotal: number;
+
+  /** Totais por natureza da despesa — a separação que o dashboard mostra. */
+  fixedTotal: number;
+  installmentTotal: number;
+  variableTotal: number;
+  /** Percentual da renda comprometido com despesas (0–100+). */
+  commitment: number;
+  totalIncome: number;
+  /** Despesas vencidas e ainda não pagas neste mês. */
+  overdueTotal: number;
+  overdueCount: number;
+}
+
+/** Uma dívida parcelada em aberto, na visão do plano de quitação. */
+export interface PayoffDebt {
+  groupId: string;
+  name: string;
+  category: ExpenseCategory;
+  installmentAmount: number;
+  remainingCount: number;
+  remainingTotal: number;
+  installmentsTotal: number;
+  /** Índice absoluto (ano*12+mês-1) da última parcela prevista. */
+  lastIndex: number;
+  nextIndex: number;
+}
+
+export type PayoffStrategy = 'SNOWBALL' | 'AVALANCHE';
+
+export interface PayoffStep {
+  debt: PayoffDebt;
+  /** Índice absoluto do mês em que esta dívida é quitada no plano. */
+  payoffIndex: number;
+  /** Meses economizados em relação ao cronograma original. */
+  monthsSaved: number;
+  order: number;
+}
+
+export interface PayoffPlan {
+  strategy: PayoffStrategy;
+  extraMonthly: number;
+  steps: PayoffStep[];
+  /**
+   * Dívida que recebe o dinheiro extra agora. Não é necessariamente a primeira
+   * a ser quitada: outra pode terminar antes só de pagar as parcelas normais.
+   */
+  focusGroupId: string | null;
+  /** Índice absoluto do mês em que fica sem parcelas. */
+  freeIndex: number | null;
+  baselineFreeIndex: number | null;
+  totalDebt: number;
+  monthsSaved: number;
 }

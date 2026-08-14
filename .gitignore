@@ -17,3 +17,6 @@ web-build/
 
 expo-env.d.ts
 # @end expo-cli
+# Extratos bancários usados em teste — contêm CPF, agência e conta.
+# Nunca devem ir para o repositório.
+*extrato*.pdf

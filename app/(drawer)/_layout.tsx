@@ -5,25 +5,59 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, usePathname } from 'expo-router';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
-import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 import { trackEvent } from '../../services/analytics';
 
 function MenuButton() {
   const navigation = useNavigation<any>();
+  const { theme } = useTheme();
   return (
     <TouchableOpacity
       onPress={() => navigation.openDrawer()}
-      style={{ marginLeft: 16, padding: 8 }}
+      style={{ marginLeft: 12, padding: 8 }}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
-      <MaterialCommunityIcons name="menu" size={26} color="#fff" />
+      <MaterialCommunityIcons name="menu" size={24} color={theme.headerText} />
     </TouchableOpacity>
   );
 }
 
+function ThemeToggleButton() {
+  const { theme, name, toggle } = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={toggle}
+      style={{ marginRight: 12, padding: 8 }}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <MaterialCommunityIcons
+        name={name === 'dark' ? 'weather-sunny' : 'weather-night'}
+        size={21}
+        color={theme.headerText}
+      />
+    </TouchableOpacity>
+  );
+}
+
+/** Ordem do menu: rotina do dia a dia primeiro, ferramentas depois. */
+const SCREENS: { name: string; title: string }[] = [
+  { name: 'index', title: 'Dashboard' },
+  { name: 'analise', title: 'Análise' },
+  { name: 'metas', title: 'Metas' },
+  { name: 'plano', title: 'Plano de Quitação' },
+  { name: 'planejador', title: 'Planejador' },
+  { name: 'importar', title: 'Importar Extrato' },
+  { name: 'simulator', title: 'Simular Juros' },
+  { name: 'salary-calc', title: 'Salário Líquido' },
+  { name: 'labor-laws', title: 'Rescisão & Férias' },
+  { name: 'lending', title: 'Dinheiro Emprestado' },
+  { name: 'dados', title: 'Ajustes e Dados' },
+];
+
 export default function DrawerLayout() {
   const pathname = usePathname();
   const prevPath = useRef<string | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (pathname !== prevPath.current) {
@@ -38,71 +72,34 @@ export default function DrawerLayout() {
         drawerContent={(props) => <CustomDrawerContent {...props} />}
         screenOptions={{
           headerStyle: {
-            backgroundColor: COLORS.primary,
+            backgroundColor: theme.headerBg,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.border,
+            elevation: 0,
+            shadowOpacity: 0,
           },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '700',
-            fontSize: 18,
-          },
-          drawerStyle: {
-            backgroundColor: COLORS.drawerBg,
-            width: 290,
-          },
-          drawerActiveTintColor: COLORS.highlight,
-          drawerInactiveTintColor: COLORS.drawerTextSecondary,
+          headerTintColor: theme.headerText,
+          headerTitleStyle: { fontWeight: '700', fontSize: 17, color: theme.headerText },
+          sceneStyle: { backgroundColor: theme.background },
+          drawerStyle: { backgroundColor: theme.drawerBg, width: 292 },
+          drawerActiveTintColor: theme.primary,
+          drawerInactiveTintColor: theme.drawerTextSecondary,
           headerLeft: () => <MenuButton />,
+          headerRight: () => <ThemeToggleButton />,
         }}
       >
-        <Drawer.Screen
-          name="index"
-          options={{
-            title: 'Dashboard',
-            drawerLabel: 'Dashboard',
-          }}
-        />
-        <Drawer.Screen
-          name="simulator"
-          options={{
-            title: 'Simular Juros',
-            drawerLabel: 'Simular Juros',
-          }}
-        />
-        <Drawer.Screen
-          name="salary-calc"
-          options={{
-            title: 'Salário Líquido',
-            drawerLabel: 'Salário Líquido',
-          }}
-        />
-        <Drawer.Screen
-          name="labor-laws"
-          options={{
-            title: 'Rescisão & Férias',
-            drawerLabel: 'Rescisão & Férias',
-          }}
-        />
-        <Drawer.Screen
-          name="lending"
-          options={{
-            title: 'Dinheiro Emprestado',
-            drawerLabel: 'Dinheiro Emprestado',
-          }}
-        />
-        <Drawer.Screen
-          name="dados"
-          options={{
-            title: 'Meus Dados',
-            drawerLabel: 'Meus Dados',
-          }}
-        />
+        {SCREENS.map((screen) => (
+          <Drawer.Screen
+            key={screen.name}
+            name={screen.name}
+            options={{ title: screen.title, drawerLabel: screen.title }}
+          />
+        ))}
       </Drawer>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
 });

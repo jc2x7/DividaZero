@@ -3,8 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Expense } from '../types';
 import { formatCurrency } from '../utils/formatting';
-import { COLORS } from '../constants/colors';
-import { deleteExpense } from '../database/database';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, RADIUS, alpha } from '../constants/theme';
+import { deleteExpenseScoped, countDeleteScope, DeleteResult } from '../database/database';
+import { cancelExpenseNotifications } from '../hooks/useNotifications';
+import { DeleteScope } from '../types';
+import { Tag } from './ui';
 
 interface IncomeCardProps {
   income: Expense;
@@ -12,21 +16,37 @@ interface IncomeCardProps {
 }
 
 export default function IncomeCard({ income, onDeleted }: IncomeCardProps) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const isInstallment = income.type === 'INSTALLMENT';
+  const isFixed = income.type === 'FIXED';
 
-  const handleDelete = () => {
+  const runDelete = async (scope: DeleteScope) => {
+    const { notificationIds }: DeleteResult = await deleteExpenseScoped(income.id, scope);
+    await cancelExpenseNotifications(notificationIds);
+    onDeleted();
+  };
+
+  const handleDelete = async () => {
+    if (!isInstallment && !isFixed) {
+      Alert.alert('Excluir entrada', `Remover "${income.name}"?`, [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => runDelete('one') },
+      ]);
+      return;
+    }
+
+    const counts = await countDeleteScope(income.id);
     Alert.alert(
-      'Excluir Entrada',
-      `Remover "${income.name}"?`,
+      'Excluir entrada',
+      `"${income.name}" está lançada em ${counts.all} ${counts.all === 1 ? 'mês' : 'meses'}.`,
       [
         { text: 'Cancelar', style: 'cancel' },
+        { text: 'Só este mês', onPress: () => runDelete('one') },
         {
-          text: 'Excluir',
+          text: `Este e os ${Math.max(0, counts.future - 1)} próximos`,
           style: 'destructive',
-          onPress: async () => {
-            await deleteExpense(income.id);
-            onDeleted();
-          },
+          onPress: () => runDelete('future'),
         },
       ]
     );
@@ -34,140 +54,78 @@ export default function IncomeCard({ income, onDeleted }: IncomeCardProps) {
 
   return (
     <View style={styles.card}>
-      {/* Color bar */}
-      <View style={styles.colorBar} />
-
-      {/* Icon */}
       <View style={styles.iconBox}>
-        <MaterialCommunityIcons name="cash-plus" size={20} color={COLORS.success} />
+        <MaterialCommunityIcons name="arrow-down-left" size={19} color={theme.success} />
       </View>
 
-      {/* Info */}
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
           {income.name}
         </Text>
         <View style={styles.tags}>
           {isInstallment ? (
-            <View style={styles.tagInstallment}>
-              <Text style={styles.tagInstallmentText}>
-                Parcela {income.installments_current}/{income.installments_total}
-              </Text>
-            </View>
+            <Tag
+              label={`${income.installments_current}/${income.installments_total}`}
+              color={theme.info}
+              icon="credit-card-outline"
+            />
+          ) : isFixed ? (
+            <Tag label="Recorrente" color={theme.textSecondary} icon="repeat" />
           ) : (
-            <View style={styles.tagSingle}>
-              <Text style={styles.tagSingleText}>Única</Text>
-            </View>
+            <Tag label="Única" color={theme.textSecondary} />
           )}
-          {income.due_day ? (
-            <View style={styles.tagDue}>
-              <MaterialCommunityIcons name="calendar" size={10} color={COLORS.info} />
-              <Text style={styles.tagDueText}>dia {income.due_day}</Text>
-            </View>
-          ) : null}
+          {!!income.due_day && (
+            <Tag
+              label={`dia ${income.due_day}`}
+              color={theme.textSecondary}
+              icon="calendar-blank-outline"
+            />
+          )}
         </View>
       </View>
 
-      {/* Amount + delete */}
       <View style={styles.actions}>
-        <Text style={styles.amount}>{formatCurrency(income.amount)}</Text>
-        <TouchableOpacity style={styles.iconBtn} onPress={handleDelete}>
-          <MaterialCommunityIcons name="trash-can-outline" size={16} color={COLORS.textLight} />
+        <Text style={styles.amount}>+{formatCurrency(income.amount)}</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={handleDelete} hitSlop={6}>
+          <MaterialCommunityIcons name="trash-can-outline" size={16} color={theme.textLight} />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${COLORS.success}10`,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: `${COLORS.success}30`,
-    gap: 8,
-  },
-  colorBar: {
-    width: 4,
-    height: 36,
-    borderRadius: 2,
-    backgroundColor: COLORS.success,
-    flexShrink: 0,
-  },
-  iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: `${COLORS.success}20`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  info: {
-    flex: 1,
-    minWidth: 0,
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  tagInstallment: {
-    backgroundColor: `${COLORS.info}20`,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  tagInstallmentText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.info,
-  },
-  tagSingle: {
-    backgroundColor: `${COLORS.success}20`,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  tagSingleText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.success,
-  },
-  tagDue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: `${COLORS.info}15`,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  tagDueText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.info,
-  },
-  actions: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  amount: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.success,
-  },
-  iconBtn: {
-    padding: 4,
-  },
-});
+const makeStyles = (t: ThemePalette) =>
+  StyleSheet.create({
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: alpha(t.success, 0.3),
+      paddingVertical: 11,
+      paddingHorizontal: 12,
+      marginBottom: 8,
+      gap: 10,
+    },
+    iconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.sm + 2,
+      backgroundColor: alpha(t.success, 0.12),
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    info: { flex: 1, minWidth: 0 },
+    name: { fontSize: 14.5, fontWeight: '600', color: t.text, marginBottom: 5 },
+    tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+    actions: { alignItems: 'flex-end', gap: 3 },
+    amount: {
+      fontSize: 14.5,
+      fontWeight: '700',
+      color: t.success,
+      fontVariant: ['tabular-nums'],
+    },
+    iconBtn: { padding: 3 },
+  });

@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../constants/colors';
-import { getMonthName } from '../utils/formatting';
+import { getMonthName, getMonthShortName, monthIndex } from '../utils/formatting';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, RADIUS, SPACING, alpha } from '../constants/theme';
 
 interface MonthYearPickerProps {
   year: number;
@@ -18,164 +12,162 @@ interface MonthYearPickerProps {
 }
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-const YEARS = Array.from({ length: 8 }, (_, i) => new Date().getFullYear() - 2 + i);
 
 export default function MonthYearPicker({ year, month, onSelect }: MonthYearPickerProps) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(year);
+  const [draftYear, setDraftYear] = useState(year);
 
-  const handleMonthSelect = (m: number) => {
-    onSelect(selectedYear, m);
-    setModalVisible(false);
+  const now = new Date();
+  const isCurrentMonth = monthIndex(year, month) === monthIndex(now.getFullYear(), now.getMonth() + 1);
+
+  const shift = (delta: number) => {
+    const idx = monthIndex(year, month) + delta;
+    onSelect(Math.floor(idx / 12), (idx % 12) + 1);
   };
 
-  const goToPrevMonth = () => {
-    if (month === 1) {
-      onSelect(year - 1, 12);
-    } else {
-      onSelect(year, month - 1);
-    }
-  };
-
-  const goToNextMonth = () => {
-    if (month === 12) {
-      onSelect(year + 1, 1);
-    } else {
-      onSelect(year, month + 1);
-    }
+  const open = () => {
+    setDraftYear(year);
+    setModalVisible(true);
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.arrowBtn} onPress={goToPrevMonth}>
-        <MaterialCommunityIcons name="chevron-left" size={24} color={COLORS.highlight} />
+      <TouchableOpacity style={styles.arrowBtn} onPress={() => shift(-1)} hitSlop={8}>
+        <MaterialCommunityIcons name="chevron-left" size={22} color={theme.textSecondary} />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.dateBtn} onPress={() => setModalVisible(true)}>
-        <Text style={styles.monthText}>{getMonthName(month)}</Text>
-        <Text style={styles.yearText}>{year}</Text>
+      <TouchableOpacity style={styles.dateBtn} onPress={open} activeOpacity={0.7}>
+        <Text style={styles.monthText}>
+          {getMonthName(month)} <Text style={styles.yearText}>{year}</Text>
+        </Text>
+        <MaterialCommunityIcons name="chevron-down" size={16} color={theme.textSecondary} />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.arrowBtn} onPress={goToNextMonth}>
-        <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.highlight} />
+      <TouchableOpacity style={styles.arrowBtn} onPress={() => shift(1)} hitSlop={8}>
+        <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textSecondary} />
       </TouchableOpacity>
 
-      {/* Month/Year Picker Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+      {!isCurrentMonth && (
+        <TouchableOpacity
+          style={styles.todayBtn}
+          onPress={() => onSelect(now.getFullYear(), now.getMonth() + 1)}
+        >
+          <Text style={styles.todayText}>hoje</Text>
+        </TouchableOpacity>
+      )}
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
           onPress={() => setModalVisible(false)}
         >
-          <View style={styles.picker}>
-            {/* Year selector */}
+          <TouchableOpacity activeOpacity={1} style={styles.picker}>
             <View style={styles.yearRow}>
-              <TouchableOpacity onPress={() => setSelectedYear((y) => y - 1)}>
-                <MaterialCommunityIcons name="chevron-left" size={20} color={COLORS.highlight} />
+              <TouchableOpacity onPress={() => setDraftYear((y) => y - 1)} hitSlop={10}>
+                <MaterialCommunityIcons name="chevron-left" size={22} color={theme.primary} />
               </TouchableOpacity>
-              <Text style={styles.yearLabel}>{selectedYear}</Text>
-              <TouchableOpacity onPress={() => setSelectedYear((y) => y + 1)}>
-                <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.highlight} />
+              <Text style={styles.yearLabel}>{draftYear}</Text>
+              <TouchableOpacity onPress={() => setDraftYear((y) => y + 1)} hitSlop={10}>
+                <MaterialCommunityIcons name="chevron-right" size={22} color={theme.primary} />
               </TouchableOpacity>
             </View>
 
-            {/* Month grid */}
             <View style={styles.monthGrid}>
               {MONTHS.map((m) => {
-                const isActive = m === month && selectedYear === year;
+                const active = m === month && draftYear === year;
                 return (
                   <TouchableOpacity
                     key={m}
-                    style={[styles.monthItem, isActive && styles.monthItemActive]}
-                    onPress={() => handleMonthSelect(m)}
+                    style={[styles.monthItem, active && styles.monthItemActive]}
+                    onPress={() => {
+                      onSelect(draftYear, m);
+                      setModalVisible(false);
+                    }}
                   >
-                    <Text style={[styles.monthItemText, isActive && styles.monthItemTextActive]}>
-                      {getMonthName(m).slice(0, 3)}
+                    <Text style={[styles.monthItemText, active && styles.monthItemTextActive]}>
+                      {getMonthShortName(m)}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  arrowBtn: {
-    padding: 8,
-  },
-  dateBtn: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: `${COLORS.highlight}15`,
-    minWidth: 140,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  yearText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  picker: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 20,
-    width: 300,
-  },
-  yearRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  yearLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  monthGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  monthItem: {
-    width: '22%',
-    aspectRatio: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: COLORS.background,
-  },
-  monthItemActive: {
-    backgroundColor: COLORS.highlight,
-  },
-  monthItemText: {
-    fontSize: 13,
-    color: COLORS.text,
-    fontWeight: '600',
-  },
-  monthItemTextActive: {
-    color: '#fff',
-  },
-});
+const makeStyles = (t: ThemePalette) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2,
+    },
+    arrowBtn: { padding: 6 },
+    dateBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: 6,
+      borderRadius: RADIUS.pill,
+    },
+    monthText: { fontSize: 16.5, fontWeight: '700', color: t.text, letterSpacing: -0.2 },
+    yearText: { fontSize: 16.5, fontWeight: '400', color: t.textSecondary },
+    todayBtn: {
+      position: 'absolute',
+      right: 0,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: RADIUS.pill,
+      backgroundColor: alpha(t.primary, 0.1),
+    },
+    todayText: { fontSize: 11.5, fontWeight: '700', color: t.primary },
+
+    overlay: {
+      flex: 1,
+      backgroundColor: t.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.xl,
+    },
+    picker: {
+      backgroundColor: t.surface,
+      borderRadius: RADIUS.xl,
+      padding: SPACING.xl,
+      width: '100%',
+      maxWidth: 340,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    yearRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: SPACING.lg,
+    },
+    yearLabel: { fontSize: 18, fontWeight: '700', color: t.text },
+    monthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+    monthItem: {
+      width: '22.4%',
+      paddingVertical: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: RADIUS.md,
+      backgroundColor: t.surfaceAlt,
+    },
+    monthItemActive: { backgroundColor: t.primaryFill },
+    monthItemText: { fontSize: 13, color: t.text, fontWeight: '600' },
+    monthItemTextActive: { color: t.onFill },
+  });

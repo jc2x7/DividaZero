@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { ThemePalette, alpha } from '../../constants/theme';
 import { formatCurrency } from '../../utils/formatting';
 import { calculatePrice, calculateSAC } from '../../utils/calculations';
 import AmortizationTable from '../../components/AmortizationTable';
@@ -33,6 +34,8 @@ function InputField({
   placeholder: string;
   suffix?: string;
 }) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>{label}</Text>
@@ -42,7 +45,7 @@ function InputField({
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor={COLORS.textLight}
+          placeholderTextColor={theme.textLight}
           keyboardType="decimal-pad"
         />
         {suffix && (
@@ -56,6 +59,8 @@ function InputField({
 }
 
 export default function SimulatorScreen() {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [principal, setPrincipal] = useState('');
   const [rate, setRate] = useState('');
   const [periods, setPeriods] = useState('');
@@ -98,7 +103,7 @@ export default function SimulatorScreen() {
         >
           {/* Header Info */}
           <View style={styles.headerCard}>
-            <MaterialCommunityIcons name="calculator-variant" size={32} color={COLORS.highlight} />
+            <MaterialCommunityIcons name="calculator-variant" size={32} color={theme.primary} />
             <View style={styles.headerText}>
               <Text style={styles.headerTitle}>Simulador de Juros</Text>
               <Text style={styles.headerSubtitle}>
@@ -160,7 +165,7 @@ export default function SimulatorScreen() {
 
           {/* System explanation */}
           <View style={styles.infoBox}>
-            <MaterialCommunityIcons name="information" size={18} color={COLORS.info} />
+            <MaterialCommunityIcons name="information" size={18} color={theme.info} />
             <Text style={styles.infoText}>
               {simType === 'PRICE'
                 ? 'Na Tabela Price, as parcelas são sempre iguais. Os juros são maiores no início e a amortização aumenta ao longo do tempo.'
@@ -183,7 +188,7 @@ export default function SimulatorScreen() {
             </TouchableOpacity>
             {calculated && (
               <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-                <MaterialCommunityIcons name="refresh" size={20} color={COLORS.textSecondary} />
+                <MaterialCommunityIcons name="refresh" size={20} color={theme.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -203,7 +208,7 @@ export default function SimulatorScreen() {
                 </View>
                 <View style={styles.statCard}>
                   <Text style={styles.statLabel}>Taxa Anual</Text>
-                  <Text style={[styles.statValue, { color: COLORS.warning }]}>
+                  <Text style={[styles.statValue, { color: theme.warning }]}>
                     {((Math.pow(1 + rateNum / 100, 12) - 1) * 100).toFixed(2)}%
                   </Text>
                 </View>
@@ -211,13 +216,13 @@ export default function SimulatorScreen() {
               <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                   <Text style={styles.statLabel}>Total de Juros</Text>
-                  <Text style={[styles.statValue, { color: COLORS.error }]}>
+                  <Text style={[styles.statValue, { color: theme.danger }]}>
                     {formatCurrency(result.totalInterest)}
                   </Text>
                 </View>
                 <View style={styles.statCard}>
                   <Text style={styles.statLabel}>Custo Efetivo Total</Text>
-                  <Text style={[styles.statValue, { color: COLORS.info }]}>
+                  <Text style={[styles.statValue, { color: theme.info }]}>
                     {formatCurrency(result.totalPayment)}
                   </Text>
                 </View>
@@ -242,10 +247,10 @@ export default function SimulatorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
   },
   content: {
     padding: 16,
@@ -255,7 +260,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -271,17 +276,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginTop: 2,
   },
   sectionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -294,34 +299,34 @@ const styles = StyleSheet.create({
   typeBtn: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
   },
   typeBtnActive: {
-    borderColor: COLORS.highlight,
-    backgroundColor: `${COLORS.highlight}12`,
+    borderColor: t.primary,
+    backgroundColor: alpha(t.primary, 0.07),
   },
   typeBtnTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
   },
   typeBtnTitleActive: {
-    color: COLORS.highlight,
+    color: t.primary,
   },
   typeBtnDesc: {
     fontSize: 11,
-    color: COLORS.textLight,
+    color: t.textLight,
     marginTop: 2,
   },
   typeBtnDescActive: {
-    color: `${COLORS.highlight}aa`,
+    color: alpha(t.primary, 0.67),
   },
   card: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -337,7 +342,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -345,49 +350,49 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
   },
   input: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 18,
-    color: COLORS.text,
+    color: t.text,
     fontWeight: '600',
   },
   inputWithSuffix: {
     borderRightWidth: 0,
   },
   suffix: {
-    backgroundColor: `${COLORS.border}80`,
+    backgroundColor: alpha(t.border, 0.50),
     paddingHorizontal: 14,
     justifyContent: 'center',
     borderLeftWidth: 1,
-    borderLeftColor: COLORS.border,
+    borderLeftColor: t.border,
   },
   suffixText: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     fontWeight: '600',
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: `${COLORS.info}12`,
+    backgroundColor: alpha(t.info, 0.07),
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.info,
+    borderLeftColor: t.info,
   },
   infoText: {
     flex: 1,
     fontSize: 12,
-    color: COLORS.text,
+    color: t.text,
     lineHeight: 18,
   },
   actionRow: {
@@ -397,7 +402,7 @@ const styles = StyleSheet.create({
   },
   calcBtn: {
     flex: 1,
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -416,11 +421,11 @@ const styles = StyleSheet.create({
   resetBtn: {
     width: 52,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
   },
   resultsSection: {
     gap: 0,
@@ -432,7 +437,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
@@ -444,14 +449,14 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 6,
     textAlign: 'center',
   },
   statValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.text,
+    color: t.text,
     textAlign: 'center',
   },
 });

@@ -1,21 +1,29 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import * as SystemUI from 'expo-system-ui';
 import {
   requestNotificationPermissions,
   scheduleAllPaymentNotifications,
 } from '../hooks/useNotifications';
 import { getDatabase } from '../database/database';
 import { initAnalytics, trackEvent, refreshSession, flushNow } from '../services/analytics';
+import { ThemeProvider, useTheme } from '../hooks/useTheme';
+import { CategoriesProvider } from '../hooks/useCategories';
 
-export default function RootLayout() {
+function AppShell() {
   const router = useRouter();
+  const { theme, name } = useTheme();
 
   useEffect(() => {
-    // Initialize DB, analytics and notifications on app start
+    // Pinta o fundo nativo para não piscar branco ao abrir no tema escuro.
+    SystemUI.setBackgroundColorAsync(theme.background).catch(() => {});
+  }, [theme.background]);
+
+  useEffect(() => {
     const init = async () => {
       try {
         await getDatabase();
@@ -29,7 +37,6 @@ export default function RootLayout() {
     };
     init();
 
-    // Handle notification taps
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       if (data?.type === 'PAYMENT_REMINDER' && data?.loanPersonId) {
@@ -37,7 +44,6 @@ export default function RootLayout() {
       }
     });
 
-    // Track app foreground/background transitions
     const handleAppState = (next: AppStateStatus) => {
       if (next === 'active') {
         refreshSession();
@@ -56,10 +62,20 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="light" backgroundColor="transparent" translucent />
-      <Stack screenOptions={{ headerShown: false }}>
+      <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
         <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
       </Stack>
     </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <CategoriesProvider>
+        <AppShell />
+      </CategoriesProvider>
+    </ThemeProvider>
   );
 }

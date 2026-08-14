@@ -13,17 +13,23 @@ import {
   Switch,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '../constants/colors';
-import { CATEGORIES } from '../constants/categories';
-import { Expense, ExpenseCategory, ExpenseType } from '../types';
+import { useCategories } from '../hooks/useCategories';
+import { Expense, ExpenseCategory, ExpenseType, DeleteScope, Category } from '../types';
+import CategoryFormModal from './CategoryFormModal';
 import {
   addFixedExpense,
   addInstallmentExpense,
+  addVariableExpense,
   updateExpense,
-  updateExpenseNotificationId,
+  updateExpenseAndFuture,
+  updateExpenseGroup,
+  getExpenseGroup,
 } from '../database/database';
 import { scheduleExpenseDueAlert } from '../hooks/useNotifications';
-import { getTodayString } from '../utils/formatting';
+import { getTodayString, formatCurrency } from '../utils/formatting';
+import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { ThemePalette, RADIUS, SPACING, alpha, categoryColor } from '../constants/theme';
+import { Label, PrimaryButton, SegmentedControl } from './ui';
 
 interface AddDebtModalProps {
   visible: boolean;
@@ -34,6 +40,27 @@ interface AddDebtModalProps {
   editingExpense?: Expense;
 }
 
+const TYPE_OPTIONS: { value: ExpenseType; label: string; icon: string; hint: string }[] = [
+  {
+    value: 'VARIABLE',
+    label: 'Avulso',
+    icon: 'cart-outline',
+    hint: 'Um gasto único. Só aparece neste mês.',
+  },
+  {
+    value: 'FIXED',
+    label: 'Fixo',
+    icon: 'repeat',
+    hint: 'Se repete todo mês, sem data para acabar (aluguel, academia, streaming).',
+  },
+  {
+    value: 'INSTALLMENT',
+    label: 'Parcelado',
+    icon: 'credit-card-outline',
+    hint: 'Compra dividida em parcelas, com fim previsto.',
+  },
+];
+
 export default function AddDebtModal({
   visible,
   onClose,
@@ -42,19 +69,26 @@ export default function AddDebtModal({
   month,
   editingExpense,
 }: AddDebtModalProps) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { categories } = useCategories();
   const isEditing = !!editingExpense;
+
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | undefined>();
 
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('OTHER');
-  const [type, setType] = useState<ExpenseType>('FIXED');
-  const [installments, setInstallments] = useState('1');
+  const [type, setType] = useState<ExpenseType>('VARIABLE');
+  const [installments, setInstallments] = useState('12');
   const [dueDay, setDueDay] = useState('');
   const [alertEnabled, setAlertEnabled] = useState(false);
+  const [editScope, setEditScope] = useState<DeleteScope>('future');
   const [saving, setSaving] = useState(false);
 
-  // Preenche o formulário quando abre em modo de edição
   useEffect(() => {
+    if (!visible) return;
     if (editingExpense) {
       setName(editingExpense.name);
       setAmount(String(editingExpense.amount));
@@ -63,6 +97,7 @@ export default function AddDebtModal({
       setInstallments(String(editingExpense.installments_total ?? 1));
       setDueDay(editingExpense.due_day ? String(editingExpense.due_day) : '');
       setAlertEnabled(!!editingExpense.alert_enabled);
+      setEditScope('future');
     } else {
       resetForm();
     }
@@ -72,51 +107,65 @@ export default function AddDebtModal({
     setName('');
     setAmount('');
     setCategory('OTHER');
-    setType('FIXED');
-    setInstallments('1');
+    setType('VARIABLE');
+    setInstallments('12');
     setDueDay('');
     setAlertEnabled(false);
+    setEditScope('future');
   };
+
+  const amountNum = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+  const installmentsNum = parseInt(installments, 10) || 1;
+  const isRecurring = type === 'FIXED' || type === 'INSTALLMENT';
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Atenção', 'Digite o nome da despesa.');
+      Alert.alert('Falta o nome', 'Diga o que é essa despesa.');
       return;
     }
-    const amountNum = parseFloat(amount.replace(',', '.'));
     if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Atenção', 'Digite um valor válido.');
+      Alert.alert('Valor inválido', 'Digite um valor maior que zero.');
       return;
     }
     const dueDayNum = dueDay ? parseInt(dueDay, 10) : undefined;
     if (dueDay && (isNaN(dueDayNum!) || dueDayNum! < 1 || dueDayNum! > 31)) {
-      Alert.alert('Atenção', 'Dia de vencimento deve ser entre 1 e 31.');
+      Alert.alert('Dia inválido', 'O dia de vencimento deve estar entre 1 e 31.');
       return;
     }
     if (alertEnabled && !dueDayNum) {
-      Alert.alert('Atenção', 'Informe o dia de vencimento para ativar o alerta.');
+      Alert.alert('Falta o vencimento', 'Informe o dia de vencimento para ligar o alerta.');
+      return;
+    }
+    if (type === 'INSTALLMENT' && (installmentsNum < 1 || installmentsNum > 120)) {
+      Alert.alert('Parcelas inválidas', 'Informe entre 1 e 120 parcelas.');
       return;
     }
 
     setSaving(true);
     try {
       if (isEditing && editingExpense) {
-        // Modo edição: atualiza apenas este registro
-        await updateExpense(editingExpense.id, {
+        const updates = {
           name: name.trim(),
           amount: amountNum,
           category,
           due_day: dueDayNum,
           alert_enabled: alertEnabled && dueDayNum ? 1 : 0,
-        });
+        };
+        const recurringEdit = editingExpense.type === 'FIXED' || editingExpense.type === 'INSTALLMENT';
+        if (!recurringEdit || editScope === 'one') {
+          await updateExpense(editingExpense.id, updates);
+        } else if (editScope === 'future') {
+          await updateExpenseAndFuture(editingExpense.id, updates);
+        } else {
+          await updateExpenseGroup(editingExpense.id, updates);
+        }
       } else {
-        // Modo adição
         const baseExpense = {
           name: name.trim(),
           category,
           amount: amountNum,
           type,
-          installments_total: type === 'INSTALLMENT' ? parseInt(installments, 10) || 1 : 1,
+          installments_total: type === 'INSTALLMENT' ? installmentsNum : 1,
           installments_current: 1,
           start_date: getTodayString(),
           is_active: 1 as const,
@@ -125,34 +174,32 @@ export default function AddDebtModal({
           is_paid: 0,
         };
 
-        if (type === 'FIXED') {
-          await addFixedExpense(baseExpense, year, month);
-        } else {
-          await addInstallmentExpense(baseExpense, year, month);
-        }
+        const groupId =
+          type === 'FIXED'
+            ? await addFixedExpense(baseExpense, year, month)
+            : type === 'INSTALLMENT'
+              ? await addInstallmentExpense(baseExpense, year, month)
+              : await addVariableExpense(baseExpense, year, month);
 
         if (alertEnabled && dueDayNum) {
-          const draftExpense = {
-            id: -1,
-            ...baseExpense,
-            year,
-            month,
-            due_day: dueDayNum,
-            alert_enabled: 1,
-          };
-          await scheduleExpenseDueAlert(draftExpense, year, month);
+          // Agenda contra a linha já gravada — só assim o alerta pode ser
+          // cancelado depois, se a despesa for excluída.
+          const [first] = await getExpenseGroup(groupId);
+          if (first) await scheduleExpenseDueAlert(first, year, month);
         }
       }
 
       resetForm();
       onAdded();
       onClose();
-    } catch (error) {
+    } catch {
       Alert.alert('Erro', 'Não foi possível salvar a despesa.');
     } finally {
       setSaving(false);
     }
   };
+
+  const typeHint = TYPE_OPTIONS.find((o) => o.value === type)?.hint;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -164,98 +211,122 @@ export default function AddDebtModal({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>{isEditing ? 'Editar Despesa' : 'Nova Despesa'}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
+            <Text style={styles.title}>{isEditing ? 'Editar despesa' : 'Nova despesa'}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={8}>
+              <MaterialCommunityIcons name="close" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Name */}
-            <Text style={styles.label}>Nome da Despesa</Text>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Label>O que é</Label>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Aluguel, Parcela do Carro..."
-              placeholderTextColor={COLORS.textLight}
+              placeholder="Aluguel, mercado, parcela do celular..."
+              placeholderTextColor={theme.textLight}
               value={name}
               onChangeText={setName}
             />
 
-            {/* Amount */}
-            <Text style={styles.label}>Valor (R$)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0,00"
-              placeholderTextColor={COLORS.textLight}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-            />
+            <Label style={styles.spaced}>Valor {type === 'INSTALLMENT' ? 'da parcela' : ''}</Label>
+            <View style={styles.amountWrapper}>
+              <Text style={styles.currencyPrefix}>R$</Text>
+              <TextInput
+                style={styles.amountInput}
+                placeholder="0,00"
+                placeholderTextColor={theme.textLight}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+              />
+            </View>
 
-            {/* Type — somente na criação */}
             {!isEditing && (
               <>
-                <Text style={styles.label}>Tipo</Text>
-                <View style={styles.typeRow}>
-                  <TouchableOpacity
-                    style={[styles.typeBtn, type === 'FIXED' && styles.typeBtnActive]}
-                    onPress={() => setType('FIXED')}
-                  >
-                    <MaterialCommunityIcons
-                      name="repeat"
-                      size={18}
-                      color={type === 'FIXED' ? COLORS.highlight : COLORS.textSecondary}
-                    />
-                    <Text style={[styles.typeBtnText, type === 'FIXED' && styles.typeBtnTextActive]}>
-                      Fixo (recorrente)
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.typeBtn, type === 'INSTALLMENT' && styles.typeBtnActive]}
-                    onPress={() => setType('INSTALLMENT')}
-                  >
-                    <MaterialCommunityIcons
-                      name="credit-card-multiple"
-                      size={18}
-                      color={type === 'INSTALLMENT' ? COLORS.highlight : COLORS.textSecondary}
-                    />
-                    <Text style={[styles.typeBtnText, type === 'INSTALLMENT' && styles.typeBtnTextActive]}>
-                      Parcelado
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <Label style={styles.spaced}>Tipo</Label>
+                <SegmentedControl
+                  options={TYPE_OPTIONS.map((o) => ({
+                    value: o.value,
+                    label: o.label,
+                    icon: o.icon,
+                  }))}
+                  value={type}
+                  onChange={setType}
+                />
+                {!!typeHint && <Text style={styles.hint}>{typeHint}</Text>}
               </>
             )}
 
-            {/* Installments */}
             {!isEditing && type === 'INSTALLMENT' && (
               <>
-                <Text style={styles.label}>Número de Parcelas</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 12"
-                  placeholderTextColor={COLORS.textLight}
-                  value={installments}
-                  onChangeText={setInstallments}
-                  keyboardType="number-pad"
-                />
+                <Label style={styles.spaced}>Em quantas vezes</Label>
+                <View style={styles.installmentRow}>
+                  <TouchableOpacity
+                    style={styles.stepBtn}
+                    onPress={() => setInstallments(String(Math.max(1, installmentsNum - 1)))}
+                  >
+                    <MaterialCommunityIcons name="minus" size={18} color={theme.text} />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.installmentInput}
+                    value={installments}
+                    onChangeText={(v) => setInstallments(v.replace(/[^0-9]/g, '').slice(0, 3))}
+                    keyboardType="number-pad"
+                  />
+                  <TouchableOpacity
+                    style={styles.stepBtn}
+                    onPress={() => setInstallments(String(Math.min(120, installmentsNum + 1)))}
+                  >
+                    <MaterialCommunityIcons name="plus" size={18} color={theme.text} />
+                  </TouchableOpacity>
+                </View>
+                {!isNaN(amountNum) && amountNum > 0 && (
+                  <Text style={styles.hint}>
+                    {installmentsNum}x de {formatCurrency(amountNum)} — total{' '}
+                    <Text style={{ fontWeight: '700', color: theme.text }}>
+                      {formatCurrency(amountNum * installmentsNum)}
+                    </Text>
+                  </Text>
+                )}
               </>
             )}
 
-            {/* Due Day + Alert */}
-            <View style={styles.dueDateRow}>
-              <View style={styles.dueDateField}>
-                <Text style={styles.label}>Dia de Vencimento</Text>
-                <View style={styles.dueDateInput}>
+            {/* Alcance da edição, só quando faz diferença */}
+            {isEditing &&
+              (editingExpense?.type === 'FIXED' || editingExpense?.type === 'INSTALLMENT') && (
+                <>
+                  <Label style={styles.spaced}>Aplicar a</Label>
+                  <SegmentedControl
+                    options={[
+                      { value: 'one' as DeleteScope, label: 'Só este mês' },
+                      { value: 'future' as DeleteScope, label: 'Daqui pra frente' },
+                      { value: 'all' as DeleteScope, label: 'Tudo' },
+                    ]}
+                    value={editScope}
+                    onChange={setEditScope}
+                  />
+                  <Text style={styles.hint}>
+                    {editScope === 'one'
+                      ? 'Altera apenas a ocorrência deste mês.'
+                      : editScope === 'future'
+                        ? 'Altera este mês e os seguintes. O histórico fica intacto.'
+                        : 'Altera todos os meses, inclusive os já passados.'}
+                  </Text>
+                </>
+              )}
+
+            <View style={styles.dueRow}>
+              <View style={styles.dueField}>
+                <Label>Vence dia</Label>
+                <View style={styles.dueInput}>
                   <MaterialCommunityIcons
-                    name="calendar-clock"
-                    size={18}
-                    color={dueDay ? COLORS.highlight : COLORS.textLight}
+                    name="calendar-blank-outline"
+                    size={17}
+                    color={dueDay ? theme.primary : theme.textLight}
                   />
                   <TextInput
-                    style={styles.dueDateTextInput}
-                    placeholder="1–31  (opcional)"
-                    placeholderTextColor={COLORS.textLight}
+                    style={styles.dueTextInput}
+                    placeholder="opcional"
+                    placeholderTextColor={theme.textLight}
                     value={dueDay}
                     onChangeText={(v) => setDueDay(v.replace(/[^0-9]/g, '').slice(0, 2))}
                     keyboardType="number-pad"
@@ -264,237 +335,218 @@ export default function AddDebtModal({
                 </View>
               </View>
 
-              <View style={styles.alertField}>
-                <Text style={styles.label}>Alerta 1 dia antes</Text>
+              <View style={styles.dueField}>
+                <Label>Me avisar</Label>
                 <View style={styles.alertRow}>
                   <MaterialCommunityIcons
-                    name={alertEnabled ? 'bell-ring' : 'bell-off-outline'}
-                    size={20}
-                    color={alertEnabled ? COLORS.highlight : COLORS.textLight}
+                    name={alertEnabled ? 'bell-ring-outline' : 'bell-off-outline'}
+                    size={19}
+                    color={alertEnabled ? theme.primary : theme.textLight}
                   />
                   <Switch
                     value={alertEnabled}
                     onValueChange={setAlertEnabled}
-                    trackColor={{ false: COLORS.border, true: `${COLORS.highlight}60` }}
-                    thumbColor={alertEnabled ? COLORS.highlight : COLORS.textLight}
+                    trackColor={{ false: theme.surfaceSunken, true: alpha(theme.primary, 0.4) }}
+                    thumbColor={alertEnabled ? theme.primaryFill : theme.textLight}
                   />
                 </View>
-                {alertEnabled && (
-                  <Text style={styles.alertHint}>
-                    Avisa às 15h do dia anterior ao vencimento
-                  </Text>
-                )}
               </View>
             </View>
+            {alertEnabled && (
+              <Text style={styles.hint}>Notificação às 15h do dia anterior ao vencimento.</Text>
+            )}
 
-            {/* Category */}
-            <Text style={styles.label}>Categoria</Text>
+            <Label style={styles.spaced}>Categoria</Label>
             <View style={styles.categoryGrid}>
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat.value}
-                  style={[
-                    styles.catItem,
-                    category === cat.value && { borderColor: cat.color, backgroundColor: `${cat.color}15` },
-                  ]}
-                  onPress={() => setCategory(cat.value)}
-                >
-                  <MaterialCommunityIcons
-                    name={cat.icon as never}
-                    size={22}
-                    color={category === cat.value ? cat.color : COLORS.textLight}
-                  />
-                  <Text
+              {categories.map((cat) => {
+                const tint = categoryColor(cat.color, theme);
+                const active = category === cat.key;
+                return (
+                  <TouchableOpacity
+                    key={cat.key}
                     style={[
-                      styles.catLabel,
-                      category === cat.value && { color: cat.color, fontWeight: '700' },
+                      styles.catItem,
+                      active && { borderColor: tint, backgroundColor: alpha(tint, 0.1) },
                     ]}
-                    numberOfLines={1}
+                    onPress={() => setCategory(cat.key)}
+                    onLongPress={() => setEditingCategory(cat)}
+                    activeOpacity={0.7}
                   >
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <MaterialCommunityIcons
+                      name={cat.icon as never}
+                      size={20}
+                      color={active ? tint : theme.textLight}
+                    />
+                    <Text
+                      style={[styles.catLabel, active && { color: tint, fontWeight: '700' }]}
+                      numberOfLines={1}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
 
-            {/* Save Button */}
-            <TouchableOpacity
-              style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+              <TouchableOpacity
+                style={[styles.catItem, styles.catItemNew]}
+                onPress={() => setShowNewCategory(true)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="plus" size={20} color={theme.primary} />
+                <Text style={[styles.catLabel, { color: theme.primary, fontWeight: '700' }]}>
+                  Nova
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.hint}>
+              Segure uma categoria para editar o nome, o ícone ou a cor.
+            </Text>
+
+            <PrimaryButton
+              label={isEditing ? 'Salvar alterações' : 'Adicionar despesa'}
+              icon="check"
               onPress={handleSave}
-              disabled={saving}
-            >
-              <MaterialCommunityIcons name="check" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>
-                {saving ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Adicionar Despesa'}
-              </Text>
-            </TouchableOpacity>
+              loading={saving}
+              style={{ marginTop: SPACING.xl, marginBottom: SPACING.md }}
+            />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+
+      <CategoryFormModal
+        visible={showNewCategory || !!editingCategory}
+        editing={editingCategory}
+        onClose={() => {
+          setShowNewCategory(false);
+          setEditingCategory(undefined);
+        }}
+        onSaved={(key) => setCategory(key)}
+      />
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '92%',
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: COLORS.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  closeBtn: { padding: 4 },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-    marginTop: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  typeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 12,
-  },
-  typeBtnActive: {
-    borderColor: COLORS.highlight,
-    backgroundColor: `${COLORS.highlight}10`,
-  },
-  typeBtnText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-  },
-  typeBtnTextActive: {
-    color: COLORS.highlight,
-    fontWeight: '700',
-  },
-  dueDateRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  dueDateField: {
-    flex: 1,
-  },
-  dueDateInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  dueDateTextInput: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.text,
-    padding: 0,
-  },
-  alertField: {
-    flex: 1,
-  },
-  alertRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  alertHint: {
-    fontSize: 11,
-    color: COLORS.highlight,
-    marginTop: 4,
-    lineHeight: 15,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  catItem: {
-    width: '30%',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    gap: 4,
-  },
-  catLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  saveBtn: {
-    backgroundColor: COLORS.highlight,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+const makeStyles = (t: ThemePalette) =>
+  StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: t.overlay, justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: t.surface,
+      borderTopLeftRadius: RADIUS.xl + 4,
+      borderTopRightRadius: RADIUS.xl + 4,
+      paddingHorizontal: SPACING.xl,
+      paddingTop: SPACING.md,
+      maxHeight: '92%',
+    },
+    handle: {
+      width: 36,
+      height: 4,
+      backgroundColor: t.borderStrong,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: SPACING.lg,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.lg,
+    },
+    title: { fontSize: 20, fontWeight: '700', color: t.text, letterSpacing: -0.3 },
+    closeBtn: { padding: 4 },
+    spaced: { marginTop: SPACING.lg },
+    hint: {
+      fontSize: 12.5,
+      color: t.textSecondary,
+      marginTop: SPACING.sm,
+      lineHeight: 18,
+    },
+    input: {
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: 14,
+      fontSize: 15.5,
+      color: t.text,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    amountWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: SPACING.lg,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    currencyPrefix: { fontSize: 16, fontWeight: '600', color: t.textSecondary },
+    amountInput: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 22,
+      fontWeight: '700',
+      color: t.text,
+    },
+    installmentRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+    stepBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.border,
+      backgroundColor: t.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    installmentInput: {
+      flex: 1,
+      textAlign: 'center',
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.border,
+      paddingVertical: 12,
+      fontSize: 19,
+      fontWeight: '700',
+      color: t.text,
+    },
+    dueRow: { flexDirection: 'row', gap: SPACING.md, marginTop: SPACING.lg },
+    dueField: { flex: 1 },
+    dueInput: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    dueTextInput: { flex: 1, fontSize: 15, color: t.text, padding: 0 },
+    alertRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: t.surfaceAlt,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+    catItemNew: { borderStyle: 'dashed', borderColor: t.primary },
+    catItem: {
+      width: '31.4%',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: t.border,
+      borderRadius: RADIUS.md,
+      paddingVertical: 11,
+      paddingHorizontal: 4,
+      gap: 5,
+    },
+    catLabel: { fontSize: 11, color: t.textSecondary, textAlign: 'center' },
+  });

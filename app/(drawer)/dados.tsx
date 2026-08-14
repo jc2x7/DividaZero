@@ -16,7 +16,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import { COLORS } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { ThemePalette, alpha } from '../../constants/theme';
+import { ThemeMode } from '../../constants/theme';
+import { SegmentedControl } from '../../components/ui';
 import { exportAllData, importAllData } from '../../database/database';
 
 const SAVE_TIPS = [
@@ -67,6 +70,8 @@ function ImportModal({
   onConfirm: (text: string) => void;
   loading: boolean;
 }) {
+  const { theme } = useTheme();
+  const modal = useThemedStyles(makeModalStyles);
   const [text, setText] = useState('');
   const [picking, setPicking] = useState(false);
 
@@ -113,7 +118,7 @@ function ImportModal({
           <View style={modal.header}>
             <Text style={modal.title}>Importar Dados</Text>
             <TouchableOpacity onPress={handleClose}>
-              <MaterialCommunityIcons name="close" size={22} color={COLORS.textSecondary} />
+              <MaterialCommunityIcons name="close" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -128,9 +133,9 @@ function ImportModal({
             disabled={picking}
           >
             {picking ? (
-              <ActivityIndicator color={COLORS.highlight} size="small" />
+              <ActivityIndicator color={theme.primary} size="small" />
             ) : (
-              <MaterialCommunityIcons name="file-search-outline" size={20} color={COLORS.highlight} />
+              <MaterialCommunityIcons name="file-search-outline" size={20} color={theme.primary} />
             )}
             <Text style={modal.fileBtnText}>
               {picking ? 'Abrindo...' : 'Procurar arquivo no celular'}
@@ -148,7 +153,7 @@ function ImportModal({
             value={text}
             onChangeText={setText}
             placeholder='{"version": 1, "exportedAt": "...", ...}'
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor={theme.textLight}
             multiline
             textAlignVertical="top"
             autoCorrect={false}
@@ -181,6 +186,8 @@ function ImportModal({
 }
 
 export default function DadosScreen() {
+  const { theme, mode, setMode } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -235,6 +242,25 @@ export default function DadosScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Aparência */}
+        <View style={styles.actionsCard}>
+          <Text style={styles.sectionLabel}>Aparência</Text>
+          <SegmentedControl
+            options={[
+              { value: 'light' as ThemeMode, label: 'Claro', icon: 'weather-sunny' },
+              { value: 'dark' as ThemeMode, label: 'Escuro', icon: 'weather-night' },
+              { value: 'system' as ThemeMode, label: 'Automático', icon: 'cellphone' },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
+          <Text style={styles.themeHint}>
+            {mode === 'system'
+              ? 'O app acompanha o tema do seu celular.'
+              : `Tema ${mode === 'dark' ? 'escuro' : 'claro'} fixo, independente do sistema.`}
+          </Text>
+        </View>
+
         {/* Aviso principal */}
         <View style={styles.warningCard}>
           <MaterialCommunityIcons name="alert-circle" size={28} color="#fff" />
@@ -275,12 +301,12 @@ export default function DadosScreen() {
             style={[styles.actionBtn, styles.importBtn]}
             onPress={() => setShowImport(true)}
           >
-            <MaterialCommunityIcons name="database-import" size={22} color={COLORS.highlight} />
+            <MaterialCommunityIcons name="database-import" size={22} color={theme.primary} />
             <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: COLORS.text }]}>Importar dados</Text>
+              <Text style={[styles.actionTitle, { color: theme.text }]}>Importar dados</Text>
               <Text style={styles.actionSub}>Restaura um backup anterior</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.textLight} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textLight} />
           </TouchableOpacity>
         </View>
 
@@ -308,7 +334,7 @@ export default function DadosScreen() {
 
         {/* Dica final */}
         <View style={styles.infoBox}>
-          <MaterialCommunityIcons name="lightbulb-outline" size={18} color={COLORS.warning} />
+          <MaterialCommunityIcons name="lightbulb-outline" size={18} color={theme.warning} />
           <Text style={styles.infoText}>
             <Text style={{ fontWeight: '700' }}>Dica:</Text> faça um backup toda vez que registrar um
             empréstimo importante ou antes de atualizar o app.
@@ -326,10 +352,10 @@ export default function DadosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemePalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
   },
   content: {
     padding: 16,
@@ -339,7 +365,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 14,
-    backgroundColor: COLORS.error,
+    backgroundColor: t.dangerFill,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
@@ -359,20 +385,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   actionsCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: t.border,
+  },
+  themeHint: {
+    fontSize: 12,
+    color: t.textSecondary,
+    marginTop: 10,
+    lineHeight: 17,
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -386,12 +415,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   exportBtn: {
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
   },
   importBtn: {
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: t.border,
   },
   actionText: {
     flex: 1,
@@ -407,7 +436,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   tipCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: t.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -454,36 +483,36 @@ const styles = StyleSheet.create({
   stepText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     lineHeight: 19,
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: `${COLORS.warning}18`,
+    backgroundColor: alpha(t.warning, 0.09),
     borderRadius: 12,
     padding: 14,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.warning,
+    borderLeftColor: t.warning,
     marginTop: 4,
   },
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.text,
+    color: t.text,
     lineHeight: 19,
   },
 });
 
-const modal = StyleSheet.create({
+const makeModalStyles = (t: ThemePalette) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: t.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -498,11 +527,11 @@ const modal = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text,
+    color: t.text,
   },
   hint: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
     marginBottom: 12,
     lineHeight: 19,
   },
@@ -511,17 +540,17 @@ const modal = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderWidth: 1.5,
-    borderColor: COLORS.highlight,
+    borderColor: t.primary,
     borderRadius: 12,
     paddingVertical: 13,
     paddingHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: `${COLORS.highlight}0D`,
+    backgroundColor: alpha(t.primary, 0.05),
   },
   fileBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.highlight,
+    color: t.primary,
   },
   dividerRow: {
     flexDirection: 'row',
@@ -532,21 +561,21 @@ const modal = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: t.border,
   },
   dividerText: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: t.textLight,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor: t.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     padding: 14,
     fontSize: 12,
-    color: COLORS.text,
+    color: t.text,
     height: 220,
     fontFamily: 'monospace',
   },
@@ -558,7 +587,7 @@ const modal = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: t.border,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
@@ -566,11 +595,11 @@ const modal = StyleSheet.create({
   cancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: t.textSecondary,
   },
   confirmBtn: {
     flex: 2,
-    backgroundColor: COLORS.highlight,
+    backgroundColor: t.primaryFill,
     borderRadius: 14,
     paddingVertical: 14,
     flexDirection: 'row',
