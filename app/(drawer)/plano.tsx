@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { PayoffDebt, PayoffStrategy, ExpenseCategory } from '../../types';
 import { getOpenInstallmentGroups, getSetting, setSetting } from '../../database/database';
+import QuitacaoSheet from '../../components/QuitacaoSheet';
 import { useCategories } from '../../hooks/useCategories';
 import { useTheme, useThemedStyles } from '../../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, alpha, categoryColor } from '../../constants/theme';
@@ -29,12 +30,21 @@ import {
   formatMonthIndex,
   formatMonthIndexLong,
   formatDuration,
+  getMonthShortName,
+  fromMonthIndex,
 } from '../../utils/formatting';
 
-const EXTRA_SETTING_KEY = 'payoff_extra';
+const EXTRAS_SETTING_KEY = 'payoff_extras';
+const ALLOC_SETTING_KEY = 'payoff_alloc';
 const STRATEGY_SETTING_KEY = 'payoff_strategy';
 
 const QUICK_EXTRAS = [0, 100, 200, 500];
+/** Quantos meses aparecem para planejar o extra. */
+const MESES_PLANEJAVEIS = 12;
+
+/** 'YYYY-MM' a partir do índice absoluto. */
+const chaveMes = (index: number) =>
+  `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
 
 export default function PlanoScreen() {
   const { theme } = useTheme();
@@ -43,7 +53,12 @@ export default function PlanoScreen() {
 
   const [debts, setDebts] = useState<PayoffDebt[]>([]);
   const [strategy, setStrategy] = useState<PayoffStrategy>('SNOWBALL');
-  const [extraInput, setExtraInput] = useState('0');
+  /** Valor extra de cada mês, por 'YYYY-MM'. */
+  const [extras, setExtras] = useState<Record<string, number>>({});
+  /** Dívida escolhida para receber o extra de cada mês. */
+  const [alloc, setAlloc] = useState<Record<string, string>>({});
+  const [mesAberto, setMesAberto] = useState<number>(currentMonthIndex());
+  const [detalhe, setDetalhe] = useState<PayoffDebt | null>(null);
   const [loading, setLoading] = useState(true);
 
   const startIndex = currentMonthIndex();
@@ -51,9 +66,10 @@ export default function PlanoScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [rows, savedExtra, savedStrategy] = await Promise.all([
+      const [rows, savedExtras, savedAlloc, savedStrategy] = await Promise.all([
         getOpenInstallmentGroups(startIndex),
-        getSetting(EXTRA_SETTING_KEY),
+        getSetting(EXTRAS_SETTING_KEY),
+        getSetting(ALLOC_SETTING_KEY),
         getSetting(STRATEGY_SETTING_KEY),
       ]);
       setDebts(
@@ -69,7 +85,24 @@ export default function PlanoScreen() {
           nextIndex: r.next_index,
         }))
       );
-      if (savedExtra !== null) setExtraInput(savedExtra);
+      // Formato antigo guardava um único valor; vira o extra do mês corrente.
+      if (savedExtras) {
+        try {
+          const obj = JSON.parse(savedExtras);
+          setExtras(typeof obj === 'object' && obj !== null ? obj : {});
+        } catch {
+          const antigo = parseFloat(savedExtras);
+          setExtras(antigo > 0 ? { [chaveMes(startIndex)]: antigo } : {});
+        }
+      }
+      if (savedAlloc) {
+        try {
+          const obj = JSON.parse(savedAlloc);
+          setAlloc(typeof obj === 'object' && obj !== null ? obj : {});
+        } catch {
+          setAlloc({});
+        }
+      }
       if (savedStrategy === 'SNOWBALL' || savedStrategy === 'AVALANCHE') {
         setStrategy(savedStrategy);
       }
@@ -84,16 +117,56 @@ export default function PlanoScreen() {
     }, [load])
   );
 
-  const extra = Math.max(0, parseFloat(extraInput.replace(/\./g, '').replace(',', '.')) || 0);
-
   const plan = useMemo(
-    () => buildPayoffPlan(debts, strategy, extra, startIndex),
-    [debts, strategy, extra, startIndex]
+    () => buildPayoffPlan(debts, strategy, extras, startIndex, alloc),
+    [debts, strategy, extras, startIndex, alloc]
   );
 
-  const persist = (nextStrategy: PayoffStrategy, nextExtra: string) => {
-    setSetting(STRATEGY_SETTING_KEY, nextStrategy).catch(() => {});
-    setSetting(EXTRA_SETTING_KEY, nextExtra).catch(() => {});
+  /** Meses oferecidos para planejar, a partir do mês corrente. */
+  const meses = useMemo(
+    () => Array.from({ length: MESES_PLANEJAVEIS }, (_, k) => startIndex + k),
+    [startIndex]
+  );
+
+  const mkAberto = chaveMes(mesAberto);
+  const extraDoMes = extras[mkAberto] ?? 0;
+  const destinoDoMes = alloc[mkAberto];
+
+  // Texto do campo de valor. Fica em estado próprio porque quem digita e quem
+  // toca num atalho precisam ver a mesma coisa, e trocar de mês tem de
+  // recarregar o valor daquele mês.
+  const [extraTexto, setExtraTexto] = useState('');
+  useEffect(() => {
+    setExtraTexto(extraDoMes > 0 ? String(extraDoMes).replace('.', ',') : '');
+  }, [mkAberto, extraDoMes]);
+
+  const definirExtra = (mk: string, valor: number) => {
+    const proximos = { ...extras };
+    if (valor > 0) proximos[mk] = valor;
+    else delete proximos[mk];
+    setExtras(proximos);
+    setSetting(EXTRAS_SETTING_KEY, JSON.stringify(proximos)).catch(() => {});
+  };
+
+  const definirDestino = (mk: string, groupId: string | null) => {
+    const proximos = { ...alloc };
+    if (groupId) proximos[mk] = groupId;
+    else delete proximos[mk];
+    setAlloc(proximos);
+    setSetting(ALLOC_SETTING_KEY, JSON.stringify(proximos)).catch(() => {});
+  };
+
+  /** Repete o valor deste mês em todos os meses seguintes da lista. */
+  const repetirNosProximos = (valor: number) => {
+    const proximos = { ...extras };
+    for (const idx of meses) {
+      if (idx < mesAberto) continue;
+      const mk = chaveMes(idx);
+      if (valor > 0) proximos[mk] = valor;
+      else delete proximos[mk];
+    }
+    setExtras(proximos);
+    setSetting(EXTRAS_SETTING_KEY, JSON.stringify(proximos)).catch(() => {});
   };
 
   const monthlyCommitted = debts.reduce((s, d) => s + d.installmentAmount, 0);
@@ -174,45 +247,154 @@ export default function PlanoScreen() {
             value={strategy}
             onChange={(v) => {
               setStrategy(v);
-              persist(v, extraInput);
+              setSetting(STRATEGY_SETTING_KEY, v).catch(() => {});
             }}
           />
           <Text style={styles.hint}>{STRATEGY_DESCRIPTION[strategy]}</Text>
         </View>
 
-        {/* Valor extra */}
+        {/* Valor extra, mês a mês */}
         <View style={styles.block}>
-          <Label>Quanto dá para colocar a mais por mês</Label>
+          <Label>Quanto dá para colocar a mais</Label>
+          <Text style={styles.hint}>
+            O valor pode ser diferente em cada mês. Décimo terceiro, férias e bônus entram só
+            no mês em que caem.
+          </Text>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.mesesLinha}
+            style={{ marginTop: SPACING.md }}
+          >
+            {meses.map((idx) => {
+              const mk = chaveMes(idx);
+              const valor = extras[mk] ?? 0;
+              const ativo = idx === mesAberto;
+              const { month } = fromMonthIndex(idx);
+              return (
+                <TouchableOpacity
+                  key={mk}
+                  style={[styles.mesChip, ativo && styles.mesChipAtivo]}
+                  onPress={() => setMesAberto(idx)}
+                >
+                  <Text style={[styles.mesChipMes, ativo && styles.mesChipTextoAtivo]}>
+                    {getMonthShortName(month)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.mesChipValor,
+                      ativo && styles.mesChipTextoAtivo,
+                      valor === 0 && !ativo && { color: theme.textLight },
+                    ]}
+                  >
+                    {valor > 0 ? formatCurrency(valor).replace('R$\u00a0', '') : '—'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
           <View style={styles.amountWrapper}>
             <Text style={styles.currencyPrefix}>R$</Text>
             <TextInput
               style={styles.amountInput}
-              value={extraInput}
+              value={extraTexto}
               onChangeText={(v) => {
-                setExtraInput(v);
-                persist(strategy, v);
+                setExtraTexto(v);
+                definirExtra(
+                  mkAberto,
+                  Math.max(0, parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0)
+                );
               }}
               keyboardType="decimal-pad"
               placeholder="0,00"
               placeholderTextColor={theme.textLight}
             />
           </View>
+          <Text style={styles.mesAtivoLabel}>
+            em {formatMonthIndexLong(mesAberto)}
+          </Text>
+
           <View style={styles.quickRow}>
             {QUICK_EXTRAS.map((v) => (
               <TouchableOpacity
                 key={v}
-                style={[styles.quickChip, extra === v && styles.quickChipActive]}
-                onPress={() => {
-                  setExtraInput(String(v));
-                  persist(strategy, String(v));
-                }}
+                style={[styles.quickChip, extraDoMes === v && styles.quickChipActive]}
+                onPress={() => definirExtra(mkAberto, v)}
               >
-                <Text style={[styles.quickText, extra === v && styles.quickTextActive]}>
-                  {v === 0 ? 'Nada extra' : `+ ${formatCurrency(v)}`}
+                <Text style={[styles.quickText, extraDoMes === v && styles.quickTextActive]}>
+                  {v === 0 ? 'Nada' : `+ ${formatCurrency(v)}`}
                 </Text>
               </TouchableOpacity>
             ))}
+            {extraDoMes > 0 && (
+              <TouchableOpacity
+                style={[styles.quickChip, styles.repetirChip]}
+                onPress={() => repetirNosProximos(extraDoMes)}
+              >
+                <MaterialCommunityIcons name="content-copy" size={12} color={theme.primary} />
+                <Text style={[styles.quickText, styles.quickTextActive]}>
+                  repetir nos próximos
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* Para onde vai o dinheiro deste mês */}
+          {extraDoMes > 0 && debts.length > 1 && (
+            <>
+              <Text style={styles.destinoTitulo}>
+                Usar esse dinheiro em qual dívida?
+              </Text>
+              <View style={styles.destinoLinha}>
+                <TouchableOpacity
+                  style={[styles.destinoChip, !destinoDoMes && styles.destinoChipAtivo]}
+                  onPress={() => definirDestino(mkAberto, null)}
+                >
+                  <MaterialCommunityIcons
+                    name="auto-fix"
+                    size={12}
+                    color={!destinoDoMes ? theme.primary : theme.textSecondary}
+                  />
+                  <Text
+                    style={[styles.destinoTexto, !destinoDoMes && styles.destinoTextoAtivo]}
+                  >
+                    Seguir a estratégia
+                  </Text>
+                </TouchableOpacity>
+                {debts.map((d) => {
+                  const ativo = destinoDoMes === d.groupId;
+                  return (
+                    <TouchableOpacity
+                      key={d.groupId}
+                      style={[styles.destinoChip, ativo && styles.destinoChipAtivo]}
+                      onPress={() => definirDestino(mkAberto, ativo ? null : d.groupId)}
+                    >
+                      <Text
+                        style={[styles.destinoTexto, ativo && styles.destinoTextoAtivo]}
+                        numberOfLines={1}
+                      >
+                        {d.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {plan.extraTotal > 0 && (
+            <View style={styles.totalExtra}>
+              <MaterialCommunityIcons name="cash-plus" size={15} color={theme.success} />
+              <Text style={styles.totalExtraTexto}>
+                {formatCurrency(plan.extraTotal)} planejados em{' '}
+                {Object.values(plan.extras).filter((v) => v > 0).length}{' '}
+                {Object.values(plan.extras).filter((v) => v > 0).length === 1 ? 'mês' : 'meses'}
+              </Text>
+            </View>
+          )}
+
           <Text style={styles.hint}>
             Mesmo sem colocar nada extra o plano acelera: cada parcela quitada deixa de sair da
             sua conta e é redirecionada para a próxima dívida da fila.
@@ -231,9 +413,11 @@ export default function PlanoScreen() {
                 ? 1 - step.debt.remainingCount / step.debt.installmentsTotal
                 : 0;
             return (
-              <View
+              <TouchableOpacity
                 key={step.debt.groupId}
                 style={[styles.stepCard, isFocus && styles.stepCardFocus]}
+                onPress={() => setDetalhe(step.debt)}
+                activeOpacity={0.75}
               >
                 {isFocus && (
                   <View style={styles.focusBadge}>
@@ -274,19 +458,31 @@ export default function PlanoScreen() {
                   <ProgressBar progress={progress} color={tint} height={5} />
                 </View>
 
-                {step.monthsSaved > 0 && (
-                  <View style={styles.stepSaved}>
+                <View style={styles.stepRodape}>
+                  {step.monthsSaved > 0 ? (
+                    <View style={styles.stepSaved}>
+                      <MaterialCommunityIcons
+                        name="clock-fast"
+                        size={12}
+                        color={theme.success}
+                      />
+                      <Text style={styles.stepSavedText}>
+                        {formatDuration(step.monthsSaved)} antes do previsto
+                      </Text>
+                    </View>
+                  ) : (
+                    <View />
+                  )}
+                  <View style={styles.stepLink}>
+                    <Text style={styles.stepLinkTexto}>Simular quitação</Text>
                     <MaterialCommunityIcons
-                      name="clock-fast"
-                      size={12}
-                      color={theme.success}
+                      name="chevron-right"
+                      size={14}
+                      color={theme.primary}
                     />
-                    <Text style={styles.stepSavedText}>
-                      {formatDuration(step.monthsSaved)} antes do previsto
-                    </Text>
                   </View>
-                )}
-              </View>
+                </View>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -299,6 +495,12 @@ export default function PlanoScreen() {
           <Text style={styles.footerLinkText}>Ver evolução dos gastos</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <QuitacaoSheet
+        debt={detalhe}
+        onClose={() => setDetalhe(null)}
+        onChanged={load}
+      />
     </SafeAreaView>
   );
 }
@@ -371,6 +573,78 @@ const makeStyles = (t: ThemePalette) =>
     quickChipActive: { borderColor: t.primary, backgroundColor: alpha(t.primary, 0.1) },
     quickText: { fontSize: 12.5, fontWeight: '600', color: t.textSecondary },
     quickTextActive: { color: t.primary },
+    repetirChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      borderStyle: 'dashed',
+      borderColor: t.primary,
+    },
+
+    // Faixa de meses do planejamento do extra
+    mesesLinha: { gap: SPACING.sm, paddingRight: SPACING.lg },
+    mesChip: {
+      minWidth: 74,
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.border,
+      backgroundColor: t.surface,
+    },
+    mesChipAtivo: { borderColor: t.primary, backgroundColor: alpha(t.primary, 0.1) },
+    mesChipMes: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: t.textSecondary,
+      textTransform: 'uppercase',
+    },
+    mesChipValor: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: t.text,
+      marginTop: 2,
+      fontVariant: ['tabular-nums'],
+    },
+    mesChipTextoAtivo: { color: t.primary },
+    mesAtivoLabel: { fontSize: 12, color: t.textSecondary, marginTop: 6 },
+
+    // Escolha da dívida que recebe o extra
+    destinoTitulo: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: t.text,
+      marginTop: SPACING.lg,
+      marginBottom: SPACING.sm,
+    },
+    destinoLinha: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+    destinoChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      maxWidth: '100%',
+      paddingHorizontal: 11,
+      paddingVertical: 7,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1,
+      borderColor: t.border,
+      backgroundColor: t.surface,
+    },
+    destinoChipAtivo: { borderColor: t.primary, backgroundColor: alpha(t.primary, 0.1) },
+    destinoTexto: { fontSize: 12, fontWeight: '600', color: t.textSecondary, flexShrink: 1 },
+    destinoTextoAtivo: { color: t.primary },
+
+    totalExtra: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: SPACING.lg,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: alpha(t.success, 0.1),
+    },
+    totalExtraTexto: { flex: 1, fontSize: 12.5, color: t.text, fontWeight: '600' },
 
     stepCard: {
       backgroundColor: t.surface,
@@ -412,7 +686,16 @@ const makeStyles = (t: ThemePalette) =>
       fontVariant: ['tabular-nums'],
     },
     stepPayoff: { fontSize: 11, color: t.textLight, marginTop: 2 },
-    stepSaved: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: SPACING.sm },
+    stepRodape: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: SPACING.sm,
+      gap: SPACING.sm,
+    },
+    stepLink: { flexDirection: 'row', alignItems: 'center', gap: 1 },
+    stepLinkTexto: { fontSize: 11.5, fontWeight: '700', color: t.primary },
+    stepSaved: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     stepSavedText: { fontSize: 11, fontWeight: '600', color: t.success },
 
     footerLink: {

@@ -267,7 +267,10 @@ export interface PayoffStep {
 
 export interface PayoffPlan {
   strategy: PayoffStrategy;
-  extraMonthly: number;
+  /** Valor extra planejado para cada mês, indexado por 'YYYY-MM'. */
+  extras: Record<string, number>;
+  /** Soma de todos os extras planejados. */
+  extraTotal: number;
   steps: PayoffStep[];
   /**
    * Dívida que recebe o dinheiro extra agora. Não é necessariamente a primeira
