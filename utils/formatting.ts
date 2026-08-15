@@ -128,12 +128,42 @@ export const formatDuration = (months: number): string => {
   return parts.join(' e ');
 };
 
+// ── Máscara de moeda ──────────────────────────────────────────
+// A digitação entra pelos centavos e empurra para a esquerda: 5 → 0,05,
+// 50 → 0,50, 500 → 5,00. Assim ninguém precisa procurar a vírgula no teclado.
+
+/** Quantos dígitos a máscara aceita — 12 dá até 9.999.999.999,99. */
+const MAX_DIGITOS = 12;
+
+/** Só os dígitos que a máscara considera, já limitados. */
+export const somenteDigitos = (texto: string): string =>
+  texto.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, MAX_DIGITOS);
+
+/** '12345' → '123,45'. String vazia devolve vazio, para o placeholder aparecer. */
+export const digitosParaTexto = (digitos: string): string => {
+  if (!digitos) return '';
+  return (parseInt(digitos, 10) / 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+/** '12345' → 123.45 */
+export const digitosParaNumero = (digitos: string): number =>
+  digitos ? parseInt(digitos, 10) / 100 : 0;
+
+/** 123.45 → '12345'. Zero vira vazio, para o campo não nascer preenchido. */
+export const numeroParaDigitos = (valor: number): string => {
+  if (!valor || !isFinite(valor) || valor <= 0) return '';
+  return String(Math.round(valor * 100)).slice(0, MAX_DIGITOS);
+};
+
 /**
  * Apply currency mask to input value
+ * @deprecated use o componente `MoneyInput`
  */
 export const applyCurrencyMask = (value: string): string => {
-  const digits = value.replace(/\D/g, '');
+  const digits = somenteDigitos(value);
   if (!digits) return '';
-  const number = parseInt(digits, 10) / 100;
-  return formatCurrency(number);
+  return formatCurrency(digitosParaNumero(digits));
 };

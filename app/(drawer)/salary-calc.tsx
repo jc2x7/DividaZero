@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { MoneyInput } from '../../components/ui';
 import { ThemePalette, alpha } from '../../constants/theme';
 import { formatCurrency, formatPercent } from '../../utils/formatting';
 import { calculateNetSalary } from '../../utils/calculations';
@@ -25,15 +26,15 @@ import {
 export default function SalaryCalcScreen() {
   const { theme } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const [grossSalary, setGrossSalary] = useState('');
+  const [grossValor, setGrossValor] = useState(0);
   const [dependents, setDependents] = useState('0');
-  const [otherDeductions, setOtherDeductions] = useState('0');
+  const [deducoesValor, setDeducoesValor] = useState(0);
   const [calculated, setCalculated] = useState(false);
   const [showTables, setShowTables] = useState(false);
 
-  const grossNum = parseFloat(grossSalary.replace(',', '.')) || 0;
+  const grossNum = grossValor;
   const dependentsNum = parseInt(dependents, 10) || 0;
-  const otherDedNum = parseFloat(otherDeductions.replace(',', '.')) || 0;
+  const otherDedNum = deducoesValor;
 
   const result = useMemo(() => {
     if (!calculated || grossNum <= 0) return null;
@@ -130,13 +131,9 @@ export default function SalaryCalcScreen() {
           {/* Inputs */}
           <View style={styles.card}>
             <Text style={styles.inputLabel}>Salário Bruto (R$)</Text>
-            <TextInput
-              style={styles.input}
-              value={grossSalary}
-              onChangeText={(v) => { setGrossSalary(v); setCalculated(false); }}
-              placeholder="Ex: 5000,00"
-              placeholderTextColor={theme.textLight}
-              keyboardType="decimal-pad"
+            <MoneyInput
+              value={grossValor}
+              onChangeValue={(v) => { setGrossValor(v); setCalculated(false); }}
             />
 
             <Text style={styles.inputLabel}>Número de Dependentes</Text>
@@ -150,13 +147,10 @@ export default function SalaryCalcScreen() {
             />
 
             <Text style={styles.inputLabel}>Outras Deduções (R$)</Text>
-            <TextInput
-              style={styles.input}
-              value={otherDeductions}
-              onChangeText={(v) => { setOtherDeductions(v); setCalculated(false); }}
-              placeholder="Pensão alimentícia, previdência privada..."
-              placeholderTextColor={theme.textLight}
-              keyboardType="decimal-pad"
+            <MoneyInput
+              value={deducoesValor}
+              onChangeValue={(v) => { setDeducoesValor(v); setCalculated(false); }}
+              size="medio"
             />
           </View>
 

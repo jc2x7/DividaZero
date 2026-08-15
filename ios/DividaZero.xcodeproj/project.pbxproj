@@ -175,6 +175,7 @@
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				"pt-BR",
 				en,
 				Base,
 			);
@@ -365,8 +366,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				DEVELOPMENT_LANGUAGE = "pt-BR";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dividazero.app;
-				PRODUCT_NAME = "DividaZero";
+				PRODUCT_NAME = "DvidaZero";
 				SWIFT_OBJC_BRIDGING_HEADER = "DividaZero/DividaZero-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -396,8 +398,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				DEVELOPMENT_LANGUAGE = "pt-BR";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dividazero.app;
-				PRODUCT_NAME = "DividaZero";
+				PRODUCT_NAME = "DvidaZero";
 				SWIFT_OBJC_BRIDGING_HEADER = "DividaZero/DividaZero-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

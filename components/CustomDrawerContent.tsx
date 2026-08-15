@@ -8,6 +8,8 @@ import { usePathname, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, alpha } from '../constants/theme';
+// Lido do app.json para o rodapé não envelhecer a cada versão.
+import appConfig from '../app.json';
 
 interface MenuItem {
   label: string;
@@ -170,10 +172,10 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       <View style={styles.footer}>
         <View style={styles.divider} />
         <Text style={styles.footerCreator}>Criado por Julio Lemos</Text>
-        <Text style={styles.footerText}>v1.1.0 · @juliolemosdf</Text>
+        <Text style={styles.footerText}>v{appConfig.expo.version} · @juliolemosdf</Text>
         <TouchableOpacity
           onPress={() =>
-            Linking.openURL('https://jc2x7.github.io/DividaZero/politica-privacidade.html')
+            Linking.openURL('https://julio.api.br/app/dividazero/privacidade.html')
           }
         >
           <Text style={styles.footerLink}>Política de Privacidade</Text>

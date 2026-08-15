@@ -27,7 +27,15 @@ import IncomeCard from '../../components/IncomeCard';
 import MonthYearPicker from '../../components/MonthYearPicker';
 import MonthOverview from '../../components/MonthOverview';
 import DebtDetailSheet from '../../components/DebtDetailSheet';
-import { Card, Chip, EmptyState, Label, PrimaryButton, StackedBar } from '../../components/ui';
+import {
+  Card,
+  Chip,
+  EmptyState,
+  Label,
+  PrimaryButton,
+  StackedBar,
+  MoneyInput,
+} from '../../components/ui';
 import { formatCurrency, monthIndex } from '../../utils/formatting';
 import { upsertSalary } from '../../database/database';
 import { Expense, ExpenseCategory } from '../../types';
@@ -72,8 +80,8 @@ export default function DashboardScreen() {
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
   const [showSalaryModal, setShowSalaryModal] = useState(false);
-  const [salaryInput, setSalaryInput] = useState('');
-  const [otherInput, setOtherInput] = useState('');
+  const [salaryValor, setSalaryValor] = useState(0);
+  const [otherValor, setOtherValor] = useState(0);
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'ALL'>('ALL');
   const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
     fixed: false,
@@ -102,7 +110,13 @@ export default function DashboardScreen() {
     () =>
       (['fixed', 'installment', 'variable'] as SectionKey[]).map((key) => {
         const items = applyFilter(groups[key]);
-        return { key, items, total: items.reduce((s, e) => s + e.amount, 0) };
+        // Subtotal ignora as parcelas já planejadas para quitação, para bater
+        // com o total do mês mostrado no cartão do topo.
+        return {
+          key,
+          items,
+          total: items.reduce((s, e) => s + (e.planned_payoff ? 0 : e.amount), 0),
+        };
       }),
     [groups, applyFilter]
   );
@@ -115,19 +129,17 @@ export default function DashboardScreen() {
   ];
 
   const handleOpenSalaryModal = () => {
-    setSalaryInput(salary ? String(salary.amount) : '');
-    setOtherInput(salary && salary.other_income ? String(salary.other_income) : '');
+    setSalaryValor(salary?.amount ?? 0);
+    setOtherValor(salary?.other_income ?? 0);
     setShowSalaryModal(true);
   };
 
   const handleSaveSalary = async () => {
-    const amount = parseFloat(salaryInput.replace(/\./g, '').replace(',', '.'));
-    const other = parseFloat(otherInput.replace(/\./g, '').replace(',', '.')) || 0;
-    if (isNaN(amount) || amount < 0) {
+    if (salaryValor < 0) {
       Alert.alert('Valor inválido', 'Digite um valor de renda válido.');
       return;
     }
-    await upsertSalary(year, month, amount, other);
+    await upsertSalary(year, month, salaryValor, otherValor);
     setShowSalaryModal(false);
     reload();
   };
@@ -426,30 +438,10 @@ export default function DashboardScreen() {
             </Text>
 
             <Label style={{ marginTop: SPACING.lg }}>Salário</Label>
-            <View style={styles.amountWrapper}>
-              <Text style={styles.currencyPrefix}>R$</Text>
-              <TextInput
-                style={styles.amountInput}
-                value={salaryInput}
-                onChangeText={setSalaryInput}
-                keyboardType="decimal-pad"
-                placeholder="0,00"
-                placeholderTextColor={theme.textLight}
-              />
-            </View>
+            <MoneyInput value={salaryValor} onChangeValue={setSalaryValor} />
 
             <Label style={{ marginTop: SPACING.lg }}>Outras rendas fixas</Label>
-            <View style={styles.amountWrapper}>
-              <Text style={styles.currencyPrefix}>R$</Text>
-              <TextInput
-                style={styles.amountInput}
-                value={otherInput}
-                onChangeText={setOtherInput}
-                keyboardType="decimal-pad"
-                placeholder="0,00"
-                placeholderTextColor={theme.textLight}
-              />
-            </View>
+            <MoneyInput value={otherValor} onChangeValue={setOtherValor} />
 
             <View style={styles.modalButtons}>
               <TouchableOpacity

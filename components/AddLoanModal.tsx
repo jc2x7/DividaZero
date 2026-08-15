@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '../hooks/useTheme';
+import { MoneyInput } from './ui';
 import { ThemePalette, alpha } from '../constants/theme';
 import { addLoanPerson } from '../database/database';
 import { schedulePaymentNotification } from '../hooks/useNotifications';
@@ -31,15 +32,32 @@ function Field({
   onChange,
   placeholder,
   keyboardType = 'default',
+  dinheiro,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   keyboardType?: 'default' | 'decimal-pad' | 'phone-pad' | 'number-pad';
+  /** Aplica a máscara de moeda, que preenche dos centavos para cima. */
+  dinheiro?: boolean;
 }) {
   const { theme } = useTheme();
   const styles = useThemedStyles(makeStyles);
+
+  if (dinheiro) {
+    return (
+      <>
+        <Text style={styles.label}>{label}</Text>
+        <MoneyInput
+          value={parseFloat(value.replace(',', '.')) || 0}
+          onChangeValue={(v) => onChange(v > 0 ? String(v) : '')}
+          size="medio"
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <Text style={styles.label}>{label}</Text>
@@ -158,8 +176,7 @@ export default function AddLoanModal({ visible, onClose, onAdded }: AddLoanModal
               label="Valor Emprestado (R$)"
               value={amount}
               onChange={setAmount}
-              placeholder="0,00"
-              keyboardType="decimal-pad"
+              dinheiro
             />
             <Field
               label="Juros Mensal (%)"

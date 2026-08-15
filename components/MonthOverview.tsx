@@ -106,6 +106,18 @@ export default function MonthOverview({
         </View>
       )}
 
+      {summary.plannedPayoffCount > 0 && (
+        <View style={styles.planejadoBox}>
+          <MaterialCommunityIcons name="rocket-launch-outline" size={16} color={theme.primary} />
+          <Text style={styles.planejadoTexto}>
+            {formatCurrency(summary.plannedPayoffTotal)} em{' '}
+            {summary.plannedPayoffCount}{' '}
+            {summary.plannedPayoffCount === 1 ? 'parcela saiu' : 'parcelas saíram'} do mês —
+            você planejou quitar com o dinheiro do plano
+          </Text>
+        </View>
+      )}
+
       <View style={styles.footerRow}>
         <FooterStat
           label="Pago"
@@ -217,6 +229,16 @@ const makeStyles = (t: ThemePalette) =>
     commitmentLabel: { fontSize: 12.5, color: t.textSecondary, fontWeight: '500' },
     commitmentValue: { fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
 
+    planejadoBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: alpha(t.primary, 0.09),
+    },
+    planejadoTexto: { flex: 1, fontSize: 12, color: t.primary, lineHeight: 17 },
     footerRow: {
       flexDirection: 'row',
       alignItems: 'center',

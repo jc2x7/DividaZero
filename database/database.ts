@@ -9,6 +9,8 @@ import {
   Category,
   PlanDebt,
   PlanPayment,
+  PayoffQuote,
+  PayoffSelection,
 } from '../types';
 
 /**
@@ -141,6 +143,34 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       percent REAL NOT NULL DEFAULT 0,
       PRIMARY KEY (debt_id, month),
       FOREIGN KEY (debt_id) REFERENCES plan_debts(id) ON DELETE CASCADE
+    );
+
+    -- Simulação de quitação antecipada, guardada por compra parcelada.
+    --
+    -- Guardamos a proposta *e* a taxa deduzida dela. A proposta envelhece: os
+    -- mesmos R$ 245 que hoje valem para uma parcela a 69 dias valeriam outra
+    -- coisa daqui a um mês. Já a taxa é característica do contrato e continua
+    -- valendo — é ela que serve de base para as simulações seguintes.
+    CREATE TABLE IF NOT EXISTS payoff_quotes (
+      group_id TEXT PRIMARY KEY NOT NULL,
+      last_quote REAL,
+      quoted_at TEXT,
+      days_to_last INTEGER,
+      monthly_rate REAL,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Parcelas que o usuário marcou para pagar com o dinheiro extra de um mês.
+    --
+    -- A coluna amount guarda o valor descontado no instante da escolha: é o que
+    -- de fato sai do bolso ao antecipar aquela parcela. Fica congelado para o
+    -- total do mês não mudar sozinho quando os vencimentos se aproximam.
+    CREATE TABLE IF NOT EXISTS payoff_selections (
+      expense_id INTEGER PRIMARY KEY NOT NULL,
+      group_id TEXT NOT NULL,
+      month TEXT NOT NULL,
+      amount REAL NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
     -- Categorias viram dados, não mais constante no código, para o usuário
@@ -543,10 +573,16 @@ export async function addVariableExpense(
 
 export async function getExpensesForMonth(year: number, month: number): Promise<Expense[]> {
   const db = await getDatabase();
+  // O LEFT JOIN marca as parcelas que a pessoa planejou quitar com o dinheiro
+  // extra. Elas continuam aparecendo na lista, mas saem do total do mês: esse
+  // valor não vai sair do salário.
   return db.getAllAsync<Expense>(
-    `SELECT * FROM expenses
-     WHERE year = ? AND month = ? AND is_active = 1 AND (is_income = 0 OR is_income IS NULL)
-     ORDER BY is_paid ASC, due_day IS NULL, due_day ASC, name ASC`,
+    `SELECT e.*, (s.expense_id IS NOT NULL) AS planned_payoff
+       FROM expenses e
+       LEFT JOIN payoff_selections s ON s.expense_id = e.id
+      WHERE e.year = ? AND e.month = ? AND e.is_active = 1
+        AND (e.is_income = 0 OR e.is_income IS NULL)
+      ORDER BY e.is_paid ASC, e.due_day IS NULL, e.due_day ASC, e.name ASC`,
     [year, month]
   );
 }
@@ -922,20 +958,26 @@ export async function getMonthlyTotals(
 ): Promise<MonthTotalsRow[]> {
   const db = await getDatabase();
   return db.getAllAsync<MonthTotalsRow>(
-    `SELECT year,
-            month,
-            SUM(CASE WHEN is_income = 1 THEN 0 WHEN type = 'FIXED' THEN amount ELSE 0 END)       AS fixed,
-            SUM(CASE WHEN is_income = 1 THEN 0 WHEN type = 'INSTALLMENT' THEN amount ELSE 0 END) AS installment,
+    // Colunas qualificadas com e.: payoff_selections também tem "month" e
+    // "amount", e sem o prefixo o SQLite não sabe de qual tabela é.
+    `SELECT e.year AS year,
+            e.month AS month,
+            SUM(CASE WHEN e.is_income = 1 THEN 0 WHEN e.type = 'FIXED' THEN e.amount ELSE 0 END)       AS fixed,
+            SUM(CASE WHEN e.is_income = 1 THEN 0 WHEN e.type = 'INSTALLMENT' THEN e.amount ELSE 0 END) AS installment,
             -- "variable" é o resto por definição, para fixo+parcelado+avulso sempre fechar o total
-            SUM(CASE WHEN is_income = 1 THEN 0 WHEN type IN ('FIXED','INSTALLMENT') THEN 0 ELSE amount END) AS variable,
-            SUM(CASE WHEN is_income = 1 THEN amount ELSE 0 END)                                   AS income,
-            SUM(CASE WHEN is_income = 1 THEN 0 WHEN is_paid = 1 THEN amount ELSE 0 END)          AS paid,
-            SUM(CASE WHEN is_income = 1 THEN 0 ELSE amount END)                                   AS total
-       FROM expenses
-      WHERE is_active = 1
-        AND (year * 12 + month - 1) BETWEEN ? AND ?
-      GROUP BY year, month
-      ORDER BY year, month`,
+            SUM(CASE WHEN e.is_income = 1 THEN 0 WHEN e.type IN ('FIXED','INSTALLMENT') THEN 0 ELSE e.amount END) AS variable,
+            SUM(CASE WHEN e.is_income = 1 THEN e.amount ELSE 0 END)                                     AS income,
+            SUM(CASE WHEN e.is_income = 1 THEN 0 WHEN e.is_paid = 1 THEN e.amount ELSE 0 END)           AS paid,
+            SUM(CASE WHEN e.is_income = 1 THEN 0 ELSE e.amount END)                                     AS total
+       FROM expenses e
+       LEFT JOIN payoff_selections s ON s.expense_id = e.id
+      WHERE e.is_active = 1
+        -- Parcela planejada para quitação sai do mês também aqui, senão a
+        -- análise discordaria do painel para o mesmo mês.
+        AND s.expense_id IS NULL
+        AND (e.year * 12 + e.month - 1) BETWEEN ? AND ?
+      GROUP BY e.year, e.month
+      ORDER BY e.year, e.month`,
     [fromIndex, toIndex]
   );
 }
@@ -1007,6 +1049,94 @@ export async function getOpenInstallmentGroups(fromIndex: number): Promise<OpenD
       ORDER BY remaining_total DESC`,
     [fromIndex]
   );
+}
+
+// ============================================================
+// SIMULAÇÃO DE QUITAÇÃO
+// ============================================================
+export async function getPayoffQuote(groupId: string): Promise<PayoffQuote | null> {
+  const db = await getDatabase();
+  return db.getFirstAsync<PayoffQuote>(
+    'SELECT * FROM payoff_quotes WHERE group_id = ?',
+    [groupId]
+  );
+}
+
+export async function getAllPayoffQuotes(): Promise<PayoffQuote[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<PayoffQuote>('SELECT * FROM payoff_quotes');
+}
+
+export async function savePayoffQuote(quote: Omit<PayoffQuote, 'updated_at'>): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO payoff_quotes (group_id, last_quote, quoted_at, days_to_last, monthly_rate, updated_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(group_id) DO UPDATE SET
+       last_quote = excluded.last_quote,
+       quoted_at = excluded.quoted_at,
+       days_to_last = excluded.days_to_last,
+       monthly_rate = excluded.monthly_rate,
+       updated_at = datetime('now')`,
+    [
+      quote.group_id,
+      quote.last_quote ?? null,
+      quote.quoted_at ?? null,
+      quote.days_to_last ?? null,
+      quote.monthly_rate ?? null,
+    ]
+  );
+}
+
+export async function deletePayoffQuote(groupId: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM payoff_quotes WHERE group_id = ?', [groupId]);
+}
+
+/** Parcelas marcadas para pagar com o dinheiro de um mês, dentro de uma dívida. */
+export async function getSelections(groupId: string): Promise<PayoffSelection[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<PayoffSelection>(
+    'SELECT * FROM payoff_selections WHERE group_id = ?',
+    [groupId]
+  );
+}
+
+/** Total já comprometido em cada mês, somando todas as dívidas. */
+export async function getSelectionTotals(): Promise<Record<string, number>> {
+  const db = await getDatabase();
+  const linhas = await db.getAllAsync<{ month: string; total: number }>(
+    'SELECT month, SUM(amount) AS total FROM payoff_selections GROUP BY month'
+  );
+  return Object.fromEntries(linhas.map((l) => [l.month, l.total]));
+}
+
+export async function toggleSelection(
+  expenseId: number,
+  groupId: string,
+  month: string,
+  amount: number
+): Promise<boolean> {
+  const db = await getDatabase();
+  const existe = await db.getFirstAsync<{ expense_id: number }>(
+    'SELECT expense_id FROM payoff_selections WHERE expense_id = ?',
+    [expenseId]
+  );
+  if (existe) {
+    await db.runAsync('DELETE FROM payoff_selections WHERE expense_id = ?', [expenseId]);
+    return false;
+  }
+  await db.runAsync(
+    'INSERT INTO payoff_selections (expense_id, group_id, month, amount) VALUES (?, ?, ?, ?)',
+    [expenseId, groupId, month, amount]
+  );
+  return true;
+}
+
+/** Some as marcações de um mês — usado ao zerar o dinheiro daquele mês. */
+export async function clearSelectionsForMonth(month: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM payoff_selections WHERE month = ?', [month]);
 }
 
 // ============================================================

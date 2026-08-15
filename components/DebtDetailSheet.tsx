@@ -17,7 +17,7 @@ import { getExpenseGroup, updateDueDayForGroup } from '../database/database';
 import { useCategories } from '../hooks/useCategories';
 import { useTheme, useThemedStyles } from '../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, alpha, categoryColor } from '../constants/theme';
-import { Label, ProgressBar, StatRow, GhostButton } from './ui';
+import { Label, ProgressBar, StatRow, GhostButton, MoneyInput } from './ui';
 import {
   calcularAntecipacao,
   valorQuitacaoEstimado,
@@ -49,7 +49,7 @@ export default function DebtDetailSheet({ expense, onClose, onChanged }: Props) 
   const { get } = useCategories();
 
   const [ocorrencias, setOcorrencias] = useState<Expense[]>([]);
-  const [quitacaoInput, setQuitacaoInput] = useState('');
+  const [quitacaoValor, setQuitacaoValor] = useState(0);
   const [dueDayInput, setDueDayInput] = useState('');
   const [salvandoDia, setSalvandoDia] = useState(false);
 
@@ -63,7 +63,7 @@ export default function DebtDetailSheet({ expense, onClose, onChanged }: Props) 
 
   useEffect(() => {
     if (!expense) return;
-    setQuitacaoInput('');
+    setQuitacaoValor(0);
     setDueDayInput(expense.due_day ? String(expense.due_day) : '');
     carregar();
   }, [expense, carregar]);
@@ -90,7 +90,7 @@ export default function DebtDetailSheet({ expense, onClose, onChanged }: Props) 
     };
   }, [ocorrencias, expense, agora]);
 
-  const quitacao = parseFloat(quitacaoInput.replace(/\./g, '').replace(',', '.'));
+  const quitacao = quitacaoValor;
   const calc =
     !isNaN(quitacao) && quitacao > 0 && resumo.abertas > 0
       ? calcularAntecipacao(resumo.parcela, resumo.abertas, quitacao)
@@ -218,17 +218,11 @@ export default function DebtDetailSheet({ expense, onClose, onChanged }: Props) 
                   quanto você economiza e qual juro estava embutido nas parcelas.
                 </Text>
 
-                <View style={styles.amountWrapper}>
-                  <Text style={styles.currencyPrefix}>R$</Text>
-                  <TextInput
-                    style={styles.amountInput}
-                    value={quitacaoInput}
-                    onChangeText={setQuitacaoInput}
-                    keyboardType="decimal-pad"
-                    placeholder="0,00"
-                    placeholderTextColor={theme.textLight}
-                  />
-                </View>
+                <MoneyInput
+                  value={quitacaoValor}
+                  onChangeValue={setQuitacaoValor}
+                  style={{ marginTop: SPACING.md }}
+                />
 
                 <View style={styles.sugestoes}>
                   <Text style={styles.sugestaoLabel}>Não tem a proposta? Estime pela taxa:</Text>
@@ -238,10 +232,10 @@ export default function DebtDetailSheet({ expense, onClose, onChanged }: Props) 
                         key={s.label}
                         style={styles.sugestaoChip}
                         onPress={() =>
-                          setQuitacaoInput(
-                            valorQuitacaoEstimado(resumo.parcela, resumo.abertas, s.taxa)
-                              .toFixed(2)
-                              .replace('.', ',')
+                          setQuitacaoValor(
+                            Math.round(
+                              valorQuitacaoEstimado(resumo.parcela, resumo.abertas, s.taxa) * 100
+                            ) / 100
                           )
                         }
                       >

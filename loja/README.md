@@ -99,26 +99,34 @@ trabalhista. Os cálculos servem como estimativa e conferência.
 
 | Pergunta | Resposta |
 | --- | --- |
-| O app coleta ou compartilha dados do usuário? | Coleta (apenas dados de uso). |
+| O app coleta ou compartilha dados do usuário? | **Não coleta.** |
 | Os dados são compartilhados com terceiros? | Não. |
 | Dados financeiros são coletados? | Não. Ficam somente no dispositivo. |
-| Tipo coletado | **Apps e desempenho → Interações no app** (abertura do app e tela visitada). |
-| Identificadores | Identificador gerado no dispositivo, transmitido apenas como hash SHA-256. Não é ID de publicidade. |
-| Dados são criptografados em trânsito? | Sim (HTTPS). |
+| Identificadores | Nenhum. Não há ID de publicidade nem identificador transmitido. |
+| Dados são criptografados em trânsito? | Sim (HTTPS), no único envio que existe — o PDF do extrato. |
 | Usuário pode pedir exclusão? | Sim — https://julio.api.br/app/dividazero/excluir-dados |
-| Coleta obrigatória? | Não. Sem internet, nada é enviado e o app funciona normalmente. |
-| Finalidade | Análise de uso do aplicativo. |
 | Publicidade / rastreamento | Nenhum SDK de anúncio ou rastreamento. |
 
 ## App Store — Privacidade (Nutrition Labels)
 
-- **Dados usados para rastrear você:** nenhum.
-- **Dados vinculados a você:** nenhum.
-- **Dados não vinculados a você:** *Dados de uso → Dados de interação com o produto*
-  e *Identificadores → ID do dispositivo* (identificador aleatório gerado no app,
-  enviado como hash; não é o IDFA).
-- **App Tracking Transparency:** não se aplica — o app não rastreia entre apps
-  nem usa o IDFA.
+Marcar **"Nenhum dado é coletado deste app"**.
+
+Por que se sustenta, se a importação de extrato envia um arquivo: a Apple define
+coletar como transmitir dados para fora do aparelho de modo a permitir acesso
+por tempo maior que o necessário para atender a requisição em tempo real. A API
+grava o PDF em arquivo temporário, lê e apaga no `finally` — nada é persistido
+em banco nem em log ([app.py no VPS](https://julio.api.br/app/dividazero/privacidade.html), item 3).
+
+- **App Tracking Transparency:** não se aplica — não há IDFA nem rastreamento
+  entre apps.
+
+> Esta resposta mudou em 14/08/2026. Até então o app enviava eventos de uso
+> (`services/analytics.ts`, commit `943b30a`): abertura do app, nome da tela e um
+> identificador persistente por instalação. Isso **era** coleta e obrigaria a
+> declarar *ID do dispositivo* e *Interação com o produto*. O serviço foi
+> removido, junto com as menções a ele na política de privacidade, na página de
+> exclusão de dados e no FAQ do suporte. Se voltar a existir, esta seção precisa
+> voltar atrás junto.
 
 ---
 

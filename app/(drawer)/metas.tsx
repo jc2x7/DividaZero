@@ -33,6 +33,7 @@ import {
   PrimaryButton,
   ProgressBar,
   GhostButton,
+  MoneyInput,
 } from '../../components/ui';
 import GoalFormModal from '../../components/GoalFormModal';
 import {
@@ -54,7 +55,7 @@ export default function MetasScreen() {
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
   const [detailGoal, setDetailGoal] = useState<Goal | null>(null);
   const [contributions, setContributions] = useState<GoalContribution[]>([]);
-  const [contributionInput, setContributionInput] = useState('');
+  const [aporte, setAporte] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async () => {
@@ -74,7 +75,7 @@ export default function MetasScreen() {
 
   const openDetail = async (goal: Goal) => {
     setDetailGoal(goal);
-    setContributionInput('');
+    setAporte(0);
     setContributions(await getContributions(goal.id));
   };
 
@@ -87,13 +88,13 @@ export default function MetasScreen() {
 
   const handleContribute = async (sign: 1 | -1) => {
     if (!detailGoal) return;
-    const value = parseFloat(contributionInput.replace(/\./g, '').replace(',', '.'));
+    const value = aporte;
     if (isNaN(value) || value <= 0) {
       Alert.alert('Valor inválido', 'Digite quanto você está guardando.');
       return;
     }
     await addContribution(detailGoal.id, sign * value, getTodayString());
-    setContributionInput('');
+    setAporte(0);
     await refreshDetail(detailGoal.id);
   };
 
@@ -275,17 +276,12 @@ export default function MetasScreen() {
 
                   <Label style={{ marginTop: SPACING.xl }}>Guardar agora</Label>
                   <View style={styles.contributeRow}>
-                    <View style={styles.amountWrapper}>
-                      <Text style={styles.currencyPrefix}>R$</Text>
-                      <TextInput
-                        style={styles.amountInput}
-                        placeholder="0,00"
-                        placeholderTextColor={theme.textLight}
-                        value={contributionInput}
-                        onChangeText={setContributionInput}
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
+                    <MoneyInput
+                      value={aporte}
+                      onChangeValue={setAporte}
+                      size="medio"
+                      style={{ flex: 1 }}
+                    />
                     <TouchableOpacity
                       style={[styles.contributeBtn, { backgroundColor: detailGoal.color }]}
                       onPress={() => handleContribute(1)}

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Divida Zero",
+    "name": "Dívida Zero",
     "slug": "divida-zero",
-    "version": "1.2.6",
+    "version": "1.3.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "dividazero",
@@ -16,7 +16,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dividazero.app",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID para proteger seus dados financeiros"
+        "CFBundleDevelopmentRegion": "pt-BR",
+        "CFBundleLocalizations": [
+          "pt-BR"
+        ]
       }
     },
     "android": {
@@ -50,7 +53,6 @@
         }
       ],
       "expo-sqlite",
-      "expo-local-authentication",
       "expo-font"
     ],
     "experiments": {

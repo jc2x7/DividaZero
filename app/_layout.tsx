@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -10,7 +9,6 @@ import {
   scheduleAllPaymentNotifications,
 } from '../hooks/useNotifications';
 import { getDatabase } from '../database/database';
-import { initAnalytics, trackEvent, refreshSession, flushNow } from '../services/analytics';
 import { ThemeProvider, useTheme } from '../hooks/useTheme';
 import { CategoriesProvider } from '../hooks/useCategories';
 
@@ -27,8 +25,6 @@ function AppShell() {
     const init = async () => {
       try {
         await getDatabase();
-        await initAnalytics();
-        trackEvent('app_open');
         await requestNotificationPermissions();
         await scheduleAllPaymentNotifications();
       } catch (error) {
@@ -44,19 +40,8 @@ function AppShell() {
       }
     });
 
-    const handleAppState = (next: AppStateStatus) => {
-      if (next === 'active') {
-        refreshSession();
-        trackEvent('app_open');
-      } else {
-        flushNow();
-      }
-    };
-    const appStateSub = AppState.addEventListener('change', handleAppState);
-
     return () => {
       subscription.remove();
-      appStateSub.remove();
     };
   }, [router]);
 

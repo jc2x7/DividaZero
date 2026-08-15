@@ -51,16 +51,23 @@ export function useMonthData(year: number, month: number) {
     const now = new Date();
     const sumOf = (list: Expense[]) => list.reduce((s, e) => s + e.amount, 0);
 
-    const totalExpenses = sumOf(expenses);
-    const paidTotal = sumOf(expenses.filter((e) => e.is_paid === 1));
+    // Parcela marcada no plano de quitação será paga com o dinheiro extra, que
+    // não vem do salário deste mês. Ela sai de todos os totais do painel — é
+    // isso que faz a economia aparecer de verdade para quem planejou.
+    const planejadas = expenses.filter((e) => e.planned_payoff);
+    const doMes = expenses.filter((e) => !e.planned_payoff);
+    const plannedPayoffTotal = sumOf(planejadas);
+
+    const totalExpenses = sumOf(doMes);
+    const paidTotal = sumOf(doMes.filter((e) => e.is_paid === 1));
     const totalExtraIncome = sumOf(incomes);
 
-    const fixedTotal = sumOf(expenses.filter((e) => e.type === 'FIXED'));
-    const installmentTotal = sumOf(expenses.filter((e) => e.type === 'INSTALLMENT'));
+    const fixedTotal = sumOf(doMes.filter((e) => e.type === 'FIXED'));
+    const installmentTotal = sumOf(doMes.filter((e) => e.type === 'INSTALLMENT'));
     // Qualquer tipo desconhecido cai em "avulso" para o total sempre fechar.
     const variableTotal = totalExpenses - fixedTotal - installmentTotal;
 
-    const overdue = expenses.filter((e) => isOverdue(e, year, month, now));
+    const overdue = doMes.filter((e) => isOverdue(e, year, month, now));
 
     const baseSalary = (salary?.amount ?? 0) + (salary?.other_income ?? 0);
     const totalIncome = baseSalary + totalExtraIncome;
@@ -76,8 +83,10 @@ export function useMonthData(year: number, month: number) {
       expenses,
       // Derivado das próprias despesas em vez de uma lista fixa: assim
       // categorias criadas pelo usuário aparecem sem precisar de manutenção.
+      plannedPayoffTotal,
+      plannedPayoffCount: planejadas.length,
       categoryBreakdown: Object.entries(
-        expenses.reduce<Record<string, number>>((acc, e) => {
+        doMes.reduce<Record<string, number>>((acc, e) => {
           acc[e.category] = (acc[e.category] ?? 0) + e.amount;
           return acc;
         }, {})

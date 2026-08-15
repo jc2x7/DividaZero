@@ -34,7 +34,15 @@ import {
   valorParaPercentual,
   mesDeQuitacao,
 } from '../../utils/planejador';
-import { formatCurrency, getMonthShortName, getMonthName } from '../../utils/formatting';
+import {
+  formatCurrency,
+  getMonthShortName,
+  getMonthName,
+  somenteDigitos,
+  digitosParaTexto,
+  digitosParaNumero,
+  numeroParaDigitos,
+} from '../../utils/formatting';
 
 const MESES_KEY = 'planejador_meses';
 
@@ -113,7 +121,7 @@ export default function PlanejadorScreen() {
 
   const adicionarDivida = async () => {
     const nome = novoNome.trim();
-    const valor = parseFloat(novoValor.replace(/\./g, '').replace(',', '.'));
+    const valor = digitosParaNumero(novoValor);
     if (!nome) {
       Alert.alert('Falta o nome', 'Dê um nome para a dívida.');
       return;
@@ -293,12 +301,12 @@ export default function PlanejadorScreen() {
                           <Text style={styles.prefixo}>R$</Text>
                           <TextInput
                             style={styles.inputValor}
-                            value={l.pago ? String(l.pago).replace('.', ',') : ''}
+                            value={digitosParaTexto(numeroParaDigitos(l.pago))}
                             onChangeText={(v) =>
                               definirPercentual(
                                 l.debt.id,
                                 valorParaPercentual(
-                                  parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0,
+                                  digitosParaNumero(somenteDigitos(v)),
                                   l.saldoInicial
                                 )
                               )
@@ -375,9 +383,9 @@ export default function PlanejadorScreen() {
               style={[styles.input, { width: 110, textAlign: 'right' }]}
               placeholder="R$"
               placeholderTextColor={theme.textLight}
-              value={novoValor}
-              onChangeText={setNovoValor}
-              keyboardType="decimal-pad"
+              value={digitosParaTexto(somenteDigitos(novoValor))}
+              onChangeText={(v) => setNovoValor(somenteDigitos(v))}
+              keyboardType="number-pad"
             />
           </View>
           <PrimaryButton
@@ -404,7 +412,7 @@ function EditarDivida({
   const { theme } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const [nome, setNome] = useState(debt.name);
-  const [valor, setValor] = useState(String(debt.amount).replace('.', ','));
+  const [valor, setValor] = useState(numeroParaDigitos(debt.amount));
 
   return (
     <View style={styles.editor}>
@@ -416,14 +424,14 @@ function EditarDivida({
       />
       <TextInput
         style={[styles.input, { width: 100, textAlign: 'right' }]}
-        value={valor}
-        onChangeText={setValor}
-        keyboardType="decimal-pad"
+        value={digitosParaTexto(somenteDigitos(valor))}
+        onChangeText={(v) => setValor(somenteDigitos(v))}
+        keyboardType="number-pad"
       />
       <TouchableOpacity
         style={styles.editorSalvar}
         onPress={async () => {
-          const v = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+          const v = digitosParaNumero(valor);
           if (!nome.trim() || isNaN(v) || v <= 0) return;
           await updatePlanDebt(debt.id, nome, v, debt.category);
           onSalvo();

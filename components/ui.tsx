@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   ViewStyle,
   TextStyle,
@@ -12,6 +13,12 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, cardShadow, alpha } from '../constants/theme';
+import {
+  somenteDigitos,
+  digitosParaTexto,
+  digitosParaNumero,
+  numeroParaDigitos,
+} from '../utils/formatting';
 
 // ============================================================
 // Card
@@ -141,6 +148,103 @@ export function StackedBar({
         .map((s, i) => (
           <View key={i} style={{ flex: s.value, backgroundColor: s.color }} />
         ))}
+    </View>
+  );
+}
+
+// ============================================================
+// Campo de dinheiro
+// ============================================================
+/**
+ * Entrada de valor com máscara que preenche dos centavos para cima:
+ * digitar 5 → 0,05; 50 → 0,50; 500 → 5,00. Ninguém precisa achar a vírgula.
+ *
+ * O componente guarda os dígitos crus e deriva o texto deles. O valor numérico
+ * volta pelo `onChangeValue` em reais.
+ */
+export function MoneyInput({
+  value,
+  onChangeValue,
+  placeholder = '0,00',
+  autoFocus,
+  size = 'grande',
+  prefixo = 'R$',
+  style,
+}: {
+  /** Valor em reais. */
+  value: number;
+  onChangeValue: (valor: number) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  /** 'grande' para campos protagonistas, 'medio' para campos secundários. */
+  size?: 'grande' | 'medio';
+  prefixo?: string | null;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { theme } = useTheme();
+  const [digitos, setDigitos] = useState(() => numeroParaDigitos(value));
+
+  // Ressincroniza quando o valor muda por fora (atalho, troca de mês, carga do
+  // banco). Compara pelo número para não brigar com a própria digitação.
+  useEffect(() => {
+    if (Math.abs(digitosParaNumero(digitos) - (value || 0)) > 0.004) {
+      setDigitos(numeroParaDigitos(value));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const aoDigitar = (texto: string) => {
+    const proximos = somenteDigitos(texto);
+    setDigitos(proximos);
+    onChangeValue(digitosParaNumero(proximos));
+  };
+
+  const grande = size === 'grande';
+
+  return (
+    <View
+      style={[
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: SPACING.sm,
+          backgroundColor: theme.surfaceAlt,
+          borderRadius: RADIUS.md,
+          paddingHorizontal: SPACING.lg,
+          borderWidth: 1,
+          borderColor: theme.border,
+        },
+        style,
+      ]}
+    >
+      {!!prefixo && (
+        <Text
+          style={{
+            fontSize: grande ? 16 : 15,
+            fontWeight: '600',
+            color: theme.textSecondary,
+          }}
+        >
+          {prefixo}
+        </Text>
+      )}
+      <TextInput
+        style={{
+          flex: 1,
+          paddingVertical: grande ? 14 : 12,
+          fontSize: grande ? 22 : 17,
+          fontWeight: '700',
+          color: theme.text,
+        }}
+        value={digitosParaTexto(digitos)}
+        onChangeText={aoDigitar}
+        // number-pad: só dígitos, já que a vírgula é posta pela máscara.
+        keyboardType="number-pad"
+        placeholder={placeholder}
+        placeholderTextColor={theme.textLight}
+        autoFocus={autoFocus}
+        selectTextOnFocus={false}
+      />
     </View>
   );
 }

@@ -12,13 +12,26 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { PayoffDebt, PayoffStrategy, ExpenseCategory } from '../../types';
-import { getOpenInstallmentGroups, getSetting, setSetting } from '../../database/database';
+import { PayoffDebt, PayoffStrategy, ExpenseCategory, PayoffQuote } from '../../types';
+import {
+  getOpenInstallmentGroups,
+  getSetting,
+  setSetting,
+  getAllPayoffQuotes,
+  getSelectionTotals,
+} from '../../database/database';
 import QuitacaoSheet from '../../components/QuitacaoSheet';
 import { useCategories } from '../../hooks/useCategories';
 import { useTheme, useThemedStyles } from '../../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, alpha, categoryColor } from '../../constants/theme';
-import { Card, EmptyState, Label, SegmentedControl, ProgressBar } from '../../components/ui';
+import {
+  Card,
+  EmptyState,
+  Label,
+  SegmentedControl,
+  ProgressBar,
+  MoneyInput,
+} from '../../components/ui';
 import {
   buildPayoffPlan,
   STRATEGY_LABEL,
@@ -59,6 +72,10 @@ export default function PlanoScreen() {
   const [alloc, setAlloc] = useState<Record<string, string>>({});
   const [mesAberto, setMesAberto] = useState<number>(currentMonthIndex());
   const [detalhe, setDetalhe] = useState<PayoffDebt | null>(null);
+  /** Simulações de quitação já salvas, por group_id. */
+  const [quotes, setQuotes] = useState<Record<string, PayoffQuote>>({});
+  /** Total já comprometido em parcelas marcadas, por mês. */
+  const [alocado, setAlocado] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const startIndex = currentMonthIndex();
@@ -66,12 +83,15 @@ export default function PlanoScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [rows, savedExtras, savedAlloc, savedStrategy] = await Promise.all([
+      const [rows, savedExtras, savedAlloc, savedStrategy, savedQuotes] = await Promise.all([
         getOpenInstallmentGroups(startIndex),
         getSetting(EXTRAS_SETTING_KEY),
         getSetting(ALLOC_SETTING_KEY),
         getSetting(STRATEGY_SETTING_KEY),
+        getAllPayoffQuotes(),
       ]);
+      setQuotes(Object.fromEntries(savedQuotes.map((q) => [q.group_id, q])));
+      setAlocado(await getSelectionTotals());
       setDebts(
         rows.map((r) => ({
           groupId: r.group_id,
@@ -132,13 +152,6 @@ export default function PlanoScreen() {
   const extraDoMes = extras[mkAberto] ?? 0;
   const destinoDoMes = alloc[mkAberto];
 
-  // Texto do campo de valor. Fica em estado próprio porque quem digita e quem
-  // toca num atalho precisam ver a mesma coisa, e trocar de mês tem de
-  // recarregar o valor daquele mês.
-  const [extraTexto, setExtraTexto] = useState('');
-  useEffect(() => {
-    setExtraTexto(extraDoMes > 0 ? String(extraDoMes).replace('.', ',') : '');
-  }, [mkAberto, extraDoMes]);
 
   const definirExtra = (mk: string, valor: number) => {
     const proximos = { ...extras };
@@ -295,23 +308,10 @@ export default function PlanoScreen() {
             })}
           </ScrollView>
 
-          <View style={styles.amountWrapper}>
-            <Text style={styles.currencyPrefix}>R$</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={extraTexto}
-              onChangeText={(v) => {
-                setExtraTexto(v);
-                definirExtra(
-                  mkAberto,
-                  Math.max(0, parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0)
-                );
-              }}
-              keyboardType="decimal-pad"
-              placeholder="0,00"
-              placeholderTextColor={theme.textLight}
-            />
-          </View>
+          <MoneyInput
+            value={extraDoMes}
+            onChangeValue={(v) => definirExtra(mkAberto, v)}
+          />
           <Text style={styles.mesAtivoLabel}>
             em {formatMonthIndexLong(mesAberto)}
           </Text>
@@ -382,6 +382,16 @@ export default function PlanoScreen() {
                 })}
               </View>
             </>
+          )}
+
+          {extraDoMes > 0 && (alocado[mkAberto] ?? 0) > 0 && (
+            <View style={styles.totalExtra}>
+              <MaterialCommunityIcons name="check-decagram" size={15} color={theme.success} />
+              <Text style={styles.totalExtraTexto}>
+                {formatCurrency(alocado[mkAberto] ?? 0)} já distribuídos em parcelas ·{' '}
+                {formatCurrency(Math.max(0, extraDoMes - (alocado[mkAberto] ?? 0)))} livres
+              </Text>
+            </View>
           )}
 
           {plan.extraTotal > 0 && (
@@ -474,7 +484,13 @@ export default function PlanoScreen() {
                     <View />
                   )}
                   <View style={styles.stepLink}>
-                    <Text style={styles.stepLinkTexto}>Simular quitação</Text>
+                    <Text style={styles.stepLinkTexto}>
+                      {quotes[step.debt.groupId]?.monthly_rate
+                        ? `Quitar antes · ${((quotes[step.debt.groupId].monthly_rate ?? 0) * 100)
+                            .toFixed(2)
+                            .replace('.', ',')}% a.m.`
+                        : 'Simular quitação'}
+                    </Text>
                     <MaterialCommunityIcons
                       name="chevron-right"
                       size={14}
@@ -498,6 +514,8 @@ export default function PlanoScreen() {
 
       <QuitacaoSheet
         debt={detalhe}
+        mesKey={mkAberto}
+        dinheiroDoMes={extraDoMes}
         onClose={() => setDetalhe(null)}
         onChanged={load}
       />

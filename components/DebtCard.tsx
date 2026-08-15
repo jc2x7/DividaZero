@@ -39,6 +39,8 @@ export default function DebtCard({
   const cat = get(expense.category);
   const catTint = categoryColor(cat.color, theme);
   const isPaid = !!expense.is_paid;
+  /** Parcela que a pessoa planejou quitar com o dinheiro extra do plano. */
+  const planejada = !!expense.planned_payoff && !isPaid;
   const isInstallment = expense.type === 'INSTALLMENT';
   const isFixed = expense.type === 'FIXED';
 
@@ -78,7 +80,8 @@ export default function DebtCard({
         style={[
           styles.card,
           isPaid && styles.cardPaid,
-          overdue && !isPaid && styles.cardOverdue,
+          planejada && styles.cardPlanejada,
+          overdue && !isPaid && !planejada && styles.cardOverdue,
         ]}
       >
         <TouchableOpacity onPress={handleTogglePaid} style={styles.checkBtn} hitSlop={10}>
@@ -121,6 +124,9 @@ export default function DebtCard({
             {isFixed && (
               <Tag label="Fixo" color={isPaid ? theme.textLight : theme.textSecondary} icon="repeat" />
             )}
+            {planejada && (
+              <Tag label="No plano" color={theme.primary} icon="rocket-launch-outline" />
+            )}
             {!!expense.due_day && (
               <Tag
                 label={`dia ${expense.due_day}`}
@@ -134,7 +140,13 @@ export default function DebtCard({
         </TouchableOpacity>
 
         <View style={styles.actions}>
-          <Text style={[styles.amount, isPaid && styles.amountPaid]}>
+          <Text
+            style={[
+              styles.amount,
+              isPaid && styles.amountPaid,
+              planejada && styles.amountPlanejada,
+            ]}
+          >
             {formatCurrency(expense.amount)}
           </Text>
           <View style={styles.buttons}>
@@ -268,6 +280,14 @@ const makeStyles = (t: ThemePalette) =>
     },
     cardOverdue: {
       borderColor: alpha(t.danger, 0.45),
+    },
+    cardPlanejada: {
+      borderColor: alpha(t.primary, 0.4),
+      backgroundColor: alpha(t.primary, 0.04),
+    },
+    amountPlanejada: {
+      textDecorationLine: 'line-through',
+      color: t.primary,
     },
     checkBtn: { padding: 1 },
     checkCircle: {

@@ -16,7 +16,7 @@ import { Goal } from '../types';
 import { addGoal, updateGoal } from '../database/database';
 import { useTheme, useThemedStyles } from '../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, alpha } from '../constants/theme';
-import { Label, PrimaryButton } from './ui';
+import { Label, PrimaryButton, MoneyInput } from './ui';
 import { formatCurrency, fromMonthIndex, currentMonthIndex, getMonthShortName } from '../utils/formatting';
 
 const GOAL_ICONS = [
@@ -57,8 +57,8 @@ export default function GoalFormModal({ visible, onClose, onSaved, editingGoal }
   const styles = useThemedStyles(makeStyles);
 
   const [name, setName] = useState('');
-  const [target, setTarget] = useState('');
-  const [monthly, setMonthly] = useState('');
+  const [alvo, setAlvo] = useState(0);
+  const [mensal, setMensal] = useState(0);
   const [icon, setIcon] = useState(GOAL_ICONS[0]);
   const [color, setColor] = useState(GOAL_COLORS[0]);
   const [deadlineIndex, setDeadlineIndex] = useState<number | null>(null);
@@ -68,23 +68,23 @@ export default function GoalFormModal({ visible, onClose, onSaved, editingGoal }
     if (!visible) return;
     if (editingGoal) {
       setName(editingGoal.name);
-      setTarget(String(editingGoal.target_amount));
-      setMonthly(editingGoal.monthly_target ? String(editingGoal.monthly_target) : '');
+      setAlvo(editingGoal.target_amount);
+      setMensal(editingGoal.monthly_target ?? 0);
       setIcon(editingGoal.icon);
       setColor(editingGoal.color);
       setDeadlineIndex(parseDeadline(editingGoal.deadline));
     } else {
       setName('');
-      setTarget('');
-      setMonthly('');
+      setAlvo(0);
+      setMensal(0);
       setIcon(GOAL_ICONS[0]);
       setColor(GOAL_COLORS[0]);
       setDeadlineIndex(null);
     }
   }, [editingGoal, visible]);
 
-  const targetNum = parseFloat(target.replace(/\./g, '').replace(',', '.'));
-  const monthlyNum = parseFloat(monthly.replace(/\./g, '').replace(',', '.'));
+  const targetNum = alvo;
+  const monthlyNum = mensal;
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -158,17 +158,7 @@ export default function GoalFormModal({ visible, onClose, onSaved, editingGoal }
             />
 
             <Label style={styles.spaced}>Quanto precisa juntar</Label>
-            <View style={styles.amountWrapper}>
-              <Text style={styles.currencyPrefix}>R$</Text>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="0,00"
-                placeholderTextColor={theme.textLight}
-                value={target}
-                onChangeText={setTarget}
-                keyboardType="decimal-pad"
-              />
-            </View>
+            <MoneyInput value={alvo} onChangeValue={setAlvo} />
 
             <Label style={styles.spaced}>Prazo</Label>
             <View style={styles.deadlineRow}>
@@ -206,21 +196,16 @@ export default function GoalFormModal({ visible, onClose, onSaved, editingGoal }
             </View>
 
             <Label style={styles.spaced}>Quanto pretende guardar por mês</Label>
-            <View style={styles.amountWrapper}>
-              <Text style={styles.currencyPrefix}>R$</Text>
-              <TextInput
-                style={[styles.amountInput, { fontSize: 18 }]}
-                placeholder="opcional"
-                placeholderTextColor={theme.textLight}
-                value={monthly}
-                onChangeText={setMonthly}
-                keyboardType="decimal-pad"
-              />
-            </View>
+            <MoneyInput
+              value={mensal}
+              onChangeValue={setMensal}
+              size="medio"
+              placeholder="opcional"
+            />
             {suggestedMonthly !== null && (
               <TouchableOpacity
                 style={styles.suggestion}
-                onPress={() => setMonthly(suggestedMonthly.toFixed(2).replace('.', ','))}
+                onPress={() => setMensal(Math.round(suggestedMonthly * 100) / 100)}
               >
                 <MaterialCommunityIcons name="lightbulb-outline" size={14} color={theme.info} />
                 <Text style={styles.suggestionText}>

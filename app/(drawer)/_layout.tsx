@@ -1,12 +1,10 @@
-import { useEffect, useRef } from 'react';
 import { Drawer } from 'expo-router/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation, usePathname } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
 import { useTheme } from '../../hooks/useTheme';
-import { trackEvent } from '../../services/analytics';
 
 function MenuButton() {
   const navigation = useNavigation<any>();
@@ -55,16 +53,7 @@ const SCREENS: { name: string; title: string }[] = [
 ];
 
 export default function DrawerLayout() {
-  const pathname = usePathname();
-  const prevPath = useRef<string | null>(null);
   const { theme } = useTheme();
-
-  useEffect(() => {
-    if (pathname !== prevPath.current) {
-      prevPath.current = pathname;
-      trackEvent('screen_view', pathname);
-    }
-  }, [pathname]);
 
   return (
     <GestureHandlerRootView style={styles.root}>

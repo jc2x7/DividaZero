@@ -55,6 +55,41 @@ export interface Expense {
    * a compra inteira em vez de um mês solto.
    */
   group_id?: string;
+  /**
+   * 1 quando esta parcela foi marcada no plano para ser quitada com o dinheiro
+   * extra. Ela continua devida, mas não sai do orçamento do mês — por isso fica
+   * fora dos totais do painel.
+   */
+  planned_payoff?: number;
+}
+
+/**
+ * Simulação de quitação salva de uma compra parcelada.
+ *
+ * `last_quote` é a proposta que o credor deu, com a data em que foi dada —
+ * ela perde validade conforme os vencimentos se aproximam. `monthly_rate` é o
+ * que se extrai dela e continua valendo: é a taxa do contrato.
+ */
+export interface PayoffQuote {
+  group_id: string;
+  last_quote: number | null;
+  /** 'YYYY-MM-DD' em que a proposta foi informada. */
+  quoted_at: string | null;
+  /** Dias que faltavam para a última parcela quando a proposta foi dada. */
+  days_to_last: number | null;
+  monthly_rate: number | null;
+  updated_at?: string;
+}
+
+/** Parcela marcada para ser paga com o dinheiro extra de um mês. */
+export interface PayoffSelection {
+  expense_id: number;
+  group_id: string;
+  /** Mês de onde sai o dinheiro, 'YYYY-MM'. */
+  month: string;
+  /** Valor descontado no momento da escolha. */
+  amount: number;
+  created_at?: string;
 }
 
 /**
@@ -238,6 +273,13 @@ export interface MonthSummary {
   /** Despesas vencidas e ainda não pagas neste mês. */
   overdueTotal: number;
   overdueCount: number;
+
+  /**
+   * Parcelas marcadas no plano para serem quitadas com o dinheiro extra.
+   * Ficam fora de `totalExpenses` — o valor não sai do orçamento do mês.
+   */
+  plannedPayoffTotal: number;
+  plannedPayoffCount: number;
 }
 
 /** Uma dívida parcelada em aberto, na visão do plano de quitação. */

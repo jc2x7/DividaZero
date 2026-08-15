@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '../../hooks/useTheme';
+import { MoneyInput } from '../../components/ui';
 import { ThemePalette, alpha } from '../../constants/theme';
 import { formatCurrency } from '../../utils/formatting';
 import {
@@ -34,14 +35,31 @@ function NumberInput({
   value,
   onChange,
   placeholder,
+  dinheiro,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  /** Aplica a máscara de moeda, que preenche dos centavos para cima. */
+  dinheiro?: boolean;
 }) {
   const { theme } = useTheme();
   const styles = useThemedStyles(makeStyles);
+
+  if (dinheiro) {
+    return (
+      <>
+        <Text style={styles.inputLabel}>{label}</Text>
+        <MoneyInput
+          value={parseFloat(value.replace(',', '.')) || 0}
+          onChangeValue={(v) => onChange(v > 0 ? String(v) : '')}
+          size="medio"
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <Text style={styles.inputLabel}>{label}</Text>
@@ -180,12 +198,12 @@ export default function LaborLawsScreen() {
           {tab === 'SEVERANCE' && (
             <>
               <View style={styles.card}>
-                <NumberInput label="Salário Bruto (R$)" value={sevSalary} onChange={(v) => { setSevSalary(v); setSevCalc(false); }} placeholder="Ex: 3000,00" />
+                <NumberInput label="Salário Bruto (R$)" value={sevSalary} onChange={(v) => { setSevSalary(v); setSevCalc(false); }} placeholder="Ex: 3000,00" dinheiro />
                 <NumberInput label="Anos Trabalhados" value={sevYears} onChange={(v) => { setSevYears(v); setSevCalc(false); }} placeholder="Ex: 2" />
                 <NumberInput label="Meses (além dos anos)" value={sevMonths} onChange={(v) => { setSevMonths(v); setSevCalc(false); }} placeholder="0" />
                 <NumberInput label="Dias Trabalhados no Mês Atual" value={sevDays} onChange={(v) => { setSevDays(v); setSevCalc(false); }} placeholder="Ex: 15" />
                 <NumberInput label="Dias de Férias Vencidos (0 se quitadas)" value={sevVacDays} onChange={(v) => { setSevVacDays(v); setSevCalc(false); }} placeholder="0" />
-                <NumberInput label="Saldo do FGTS (R$)" value={sevFgts} onChange={(v) => { setSevFgts(v); setSevCalc(false); }} placeholder="Ex: 5000,00" />
+                <NumberInput label="Saldo do FGTS (R$)" value={sevFgts} onChange={(v) => { setSevFgts(v); setSevCalc(false); }} placeholder="Ex: 5000,00" dinheiro />
               </View>
 
               {/* Dismissal Type */}
@@ -267,7 +285,7 @@ export default function LaborLawsScreen() {
           {tab === 'VACATION' && (
             <>
               <View style={styles.card}>
-                <NumberInput label="Salário Bruto (R$)" value={vacSalary} onChange={(v) => { setVacSalary(v); setVacCalc(false); }} placeholder="Ex: 3000,00" />
+                <NumberInput label="Salário Bruto (R$)" value={vacSalary} onChange={(v) => { setVacSalary(v); setVacCalc(false); }} placeholder="Ex: 3000,00" dinheiro />
                 <NumberInput label="Meses do Período Aquisitivo (1-12)" value={vacMonths} onChange={(v) => { setVacMonths(v); setVacCalc(false); }} placeholder="12" />
                 <NumberInput label="Dias de Gozo (deixe em branco para usar todos)" value={vacEnjoyDays} onChange={(v) => { setVacEnjoyDays(v); setVacCalc(false); }} placeholder={`Ex: 15 (máx ${Math.floor((30 / 12) * (parseInt(vacMonths, 10) || 12))} dias)`} />
                 <NumberInput label="Dias para Venda (Abono Pecuniário, máx 10)" value={vacSellDays} onChange={(v) => { setVacSellDays(v); setVacCalc(false); }} placeholder="0" />

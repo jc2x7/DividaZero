@@ -31,7 +31,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 }
 expoAutolinking.useExpoModules()
 
-rootProject.name = 'Divida Zero'
+rootProject.name = 'Dívida Zero'
 
 expoAutolinking.useExpoVersionCatalog()
 

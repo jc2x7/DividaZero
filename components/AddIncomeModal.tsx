@@ -20,7 +20,7 @@ import {
 import { getTodayString, formatCurrency } from '../utils/formatting';
 import { useTheme, useThemedStyles } from '../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, alpha } from '../constants/theme';
-import { Label, PrimaryButton, SegmentedControl } from './ui';
+import { Label, PrimaryButton, SegmentedControl, MoneyInput } from './ui';
 
 interface AddIncomeModalProps {
   visible: boolean;
@@ -49,7 +49,7 @@ export default function AddIncomeModal({
   const styles = useThemedStyles(makeStyles);
 
   const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
+  const [valor, setValor] = useState(0);
   const [type, setType] = useState<IncomeType>('SINGLE');
   const [installments, setInstallments] = useState('2');
   const [dueDay, setDueDay] = useState('');
@@ -57,7 +57,7 @@ export default function AddIncomeModal({
 
   const resetForm = () => {
     setName('');
-    setAmount('');
+    setValor(0);
     setType('SINGLE');
     setInstallments('2');
     setDueDay('');
@@ -68,7 +68,7 @@ export default function AddIncomeModal({
     onClose();
   };
 
-  const amountNum = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+  const amountNum = valor;
   const installmentsNum = parseInt(installments, 10) || 2;
 
   const handleSave = async () => {
@@ -153,17 +153,7 @@ export default function AddIncomeModal({
             <Label style={styles.spaced}>
               Valor {type === 'INSTALLMENT' ? 'de cada parcela' : ''}
             </Label>
-            <View style={styles.amountWrapper}>
-              <Text style={styles.currencyPrefix}>R$</Text>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="0,00"
-                placeholderTextColor={theme.textLight}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-              />
-            </View>
+            <MoneyInput value={valor} onChangeValue={setValor} />
 
             <Label style={styles.spaced}>Como entra</Label>
             <SegmentedControl

@@ -16,6 +16,7 @@ import { ThemePalette, alpha } from '../../constants/theme';
 import { formatCurrency } from '../../utils/formatting';
 import { calculatePrice, calculateSAC } from '../../utils/calculations';
 import AmortizationTable from '../../components/AmortizationTable';
+import { MoneyInput } from '../../components/ui';
 
 type SimType = 'PRICE' | 'SAC';
 
@@ -27,15 +28,32 @@ function InputField({
   onChange,
   placeholder,
   suffix,
+  dinheiro,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   suffix?: string;
+  /** Aplica a máscara de moeda, que preenche dos centavos para cima. */
+  dinheiro?: boolean;
 }) {
   const { theme } = useTheme();
   const styles = useThemedStyles(makeStyles);
+
+  if (dinheiro) {
+    return (
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>{label}</Text>
+        <MoneyInput
+          value={parseFloat(value.replace(',', '.')) || 0}
+          onChangeValue={(v) => onChange(v > 0 ? String(v) : '')}
+          size="medio"
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>{label}</Text>
@@ -146,7 +164,7 @@ export default function SimulatorScreen() {
               value={principal}
               onChange={(v) => { setPrincipal(v); setCalculated(false); }}
               placeholder="Ex: 10000,00"
-              suffix="R$"
+              dinheiro
             />
             <InputField
               label="Taxa de Juros Mensal"

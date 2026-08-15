@@ -29,7 +29,7 @@ import { scheduleExpenseDueAlert } from '../hooks/useNotifications';
 import { getTodayString, formatCurrency } from '../utils/formatting';
 import { useTheme, useThemedStyles } from '../hooks/useTheme';
 import { ThemePalette, RADIUS, SPACING, alpha, categoryColor } from '../constants/theme';
-import { Label, PrimaryButton, SegmentedControl } from './ui';
+import { Label, PrimaryButton, SegmentedControl, MoneyInput } from './ui';
 
 interface AddDebtModalProps {
   visible: boolean;
@@ -78,7 +78,7 @@ export default function AddDebtModal({
   const [editingCategory, setEditingCategory] = useState<Category | undefined>();
 
   const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
+  const [valor, setValor] = useState(0);
   const [category, setCategory] = useState<ExpenseCategory>('OTHER');
   const [type, setType] = useState<ExpenseType>('VARIABLE');
   const [installments, setInstallments] = useState('12');
@@ -91,7 +91,7 @@ export default function AddDebtModal({
     if (!visible) return;
     if (editingExpense) {
       setName(editingExpense.name);
-      setAmount(String(editingExpense.amount));
+      setValor(editingExpense.amount);
       setCategory(editingExpense.category);
       setType(editingExpense.type);
       setInstallments(String(editingExpense.installments_total ?? 1));
@@ -105,7 +105,7 @@ export default function AddDebtModal({
 
   const resetForm = () => {
     setName('');
-    setAmount('');
+    setValor(0);
     setCategory('OTHER');
     setType('VARIABLE');
     setInstallments('12');
@@ -114,7 +114,7 @@ export default function AddDebtModal({
     setEditScope('future');
   };
 
-  const amountNum = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+  const amountNum = valor;
   const installmentsNum = parseInt(installments, 10) || 1;
   const isRecurring = type === 'FIXED' || type === 'INSTALLMENT';
 
@@ -228,17 +228,7 @@ export default function AddDebtModal({
             />
 
             <Label style={styles.spaced}>Valor {type === 'INSTALLMENT' ? 'da parcela' : ''}</Label>
-            <View style={styles.amountWrapper}>
-              <Text style={styles.currencyPrefix}>R$</Text>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="0,00"
-                placeholderTextColor={theme.textLight}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-              />
-            </View>
+            <MoneyInput value={valor} onChangeValue={setValor} />
 
             {!isEditing && (
               <>
